@@ -1,4 +1,4 @@
-const V='1777255300742',C='mkp-'+V;
+const V='1777255612200',C='mkp-'+V;
 self.addEventListener('install',e=>{self.skipWaiting();});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
 self.addEventListener('fetch',e=>{
