@@ -200,46 +200,30 @@ document.head.appendChild(link);
     border-radius: 12px; padding: 14px 16px; margin-bottom: 16px;
     font-size: 12px; color: var(--yellow);
   }
-#lock-screen{position:fixed;inset:0;z-index:9999;background:#07070f;display:flex;flex-direction:column;align-items:center;justify-content:center;}
-.auth-view{display:none;flex-direction:column;align-items:center;gap:14px;width:100%;padding:0 32px;max-width:360px;}
-.auth-logo{font-size:56px;margin-bottom:4px;}
-.auth-title{font-size:20px;font-weight:700;font-family:system-ui;color:#fff;}
-.auth-sub{font-size:12px;color:rgba(255,255,255,0.4);text-align:center;line-height:1.6;}
-.auth-input{width:100%;padding:14px 16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;color:#fff;font-size:16px;outline:none;box-sizing:border-box;}
-.auth-input:focus{border-color:rgba(0,255,135,0.4);}
-.auth-btn{width:100%;padding:16px;border-radius:12px;background:rgba(0,255,135,0.12);border:1px solid rgba(0,255,135,0.3);color:#00ff87;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all 0.2s;}
-.auth-btn:active{background:rgba(0,255,135,0.22);transform:scale(0.98);}
-.auth-btn:disabled{opacity:0.5;}
-.auth-btn.sec{background:none;border-color:rgba(255,255,255,0.12);color:rgba(255,255,255,0.4);font-size:12px;padding:12px;}
-.auth-err{font-size:12px;color:#ff6b6b;text-align:center;min-height:18px;}
-.logout-btn{background:none;border:none;color:rgba(255,255,255,0.25);font-size:14px;cursor:pointer;padding:4px 8px;}</style>
+
+#lock-screen{position:fixed;inset:0;z-index:9999;background:#07070f;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;}
+.lk-logo{font-size:60px;}
+.lk-title{font-size:22px;font-weight:700;font-family:system-ui;color:#fff;}
+.lk-sub{font-size:12px;color:rgba(255,255,255,0.4);text-align:center;}
+.lk-input{width:100%;max-width:320px;padding:14px 16px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:#fff;font-size:16px;outline:none;box-sizing:border-box;text-align:center;}
+.lk-input:focus{border-color:rgba(0,255,135,0.5);}
+.lk-btn{width:100%;max-width:320px;padding:16px;border-radius:12px;background:rgba(0,255,135,0.12);border:1px solid rgba(0,255,135,0.3);color:#00ff87;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all 0.2s;}
+.lk-btn:active{transform:scale(0.98);}
+.lk-btn.sec{background:none;border-color:rgba(255,255,255,0.1);color:rgba(255,255,255,0.35);font-size:12px;padding:12px;}
+.lk-err{font-size:12px;color:#ff6b6b;min-height:18px;text-align:center;}
+.lk-logout{background:none;border:none;color:rgba(255,255,255,0.2);font-size:13px;cursor:pointer;padding:4px 8px;}
+</style>
 
 </head>
 <body>
 <div id="lock-screen">
-<div id="login-view" class="auth-view" style="display:flex">
-  <div class="auth-logo">&#127968;</div>
-  <div class="auth-title">MKPremium CRM</div>
-  <div class="auth-sub">Acceso restringido</div>
-  <input id="login-email" class="auth-input" type="email" placeholder="Email" value="dashboard@mkpremium.local"/>
-  <input id="login-pwd" class="auth-input" type="password" placeholder="Contrasena" onkeydown="if(event.key==='Enter')doLogin()"/>
-  <button id="login-btn" class="auth-btn" onclick="doLogin()">ACCEDER</button>
-  <div id="login-err" class="auth-err"></div>
-</div>
-<div id="fid-offer" class="auth-view">
-  <div class="auth-logo">&#128274;</div>
-  <div class="auth-title">Activar Face ID</div>
-  <div class="auth-sub">Usa Face ID para no introducir contrasena cada vez</div>
-  <button class="auth-btn" onclick="setupFID()">ACTIVAR FACE ID</button>
-  <button class="auth-btn sec" onclick="hideLock();loadData()">Ahora no</button>
-</div>
-<div id="fid-lock" class="auth-view">
-  <div class="auth-logo">&#128274;</div>
-  <div class="auth-title">MKPremium CRM</div>
-  <button id="fid-retry" class="auth-btn" onclick="doFID()" style="display:none">REINTENTAR FACE ID</button>
-  <div id="fid-err" class="auth-err"></div>
-  <button class="auth-btn sec" onclick="clearSess();showLock();showV('login-view')">Usar contrasena</button>
-</div>
+<div class="lk-logo">&#127968;</div>
+<div class="lk-title">MKPremium CRM</div>
+<div class="lk-sub" id="lk-sub">Introduce tu contrasena de acceso</div>
+<input class="lk-input" id="lk-pwd" type="password" placeholder="Contrasena" onkeydown="if(event.key==='Enter')lkSubmit()"/>
+<button class="lk-btn" id="lk-btn" onclick="lkSubmit()">ACCEDER</button>
+<button class="lk-btn sec" id="lk-fid" onclick="lkFID()" style="display:none">&#128274; Face ID</button>
+<div class="lk-err" id="lk-err"></div>
 </div>
 
 
@@ -254,7 +238,7 @@ document.head.appendChild(link);
     <span class="status-dot" id="statusDot"></span>
     <span style="font-size:16px;font-weight:700;font-family:system-ui">MKPremium CRM</span>
   </div>
-  <button class="logout-btn" onclick="doLogout()" title="Salir">&#128274;</button><button class="refresh-btn" id="refreshBtn" onclick="loadData()">
+  <button class="lk-logout" onclick="lkLogout()" title="Cerrar sesion">&#128274;</button><button class="refresh-btn" id="refreshBtn" onclick="loadData()">
     <span id="refreshIcon">↻</span> REFRESH
   </button>
 </div>
@@ -424,23 +408,60 @@ document.head.appendChild(link);
 <script>
 // ─── CONFIG ────────────────────────────────────────────────
 const DASHBOARD_ENDPOINT = 'https://fxeagnsvpclybwytfpih.supabase.co/functions/v1/dashboard';
-const DASHBOARD_TOKEN = 'PLACEHOLDER_TOKEN';
-const SUPABASE_URL_AUTH = 'https://fxeagnsvpclybwytfpih.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_1FpYpj1N7nieskBnKNsRNA_LiniqFgC';
-const AUTH_TTL = 4*3600000;
-function getSess(){try{const s=localStorage.getItem('mkp_s');if(!s)return null;const p=JSON.parse(s);if(p.expires_at*1000<Date.now()+60000)return null;return p;}catch{return null;}}
-function storeSess(s){localStorage.setItem('mkp_s',JSON.stringify(s));localStorage.setItem('mkp_t',''+Date.now());}
-function clearSess(){['mkp_s','mkp_t','mkp_cid'].forEach(k=>localStorage.removeItem(k));}
-function getToken(){return getSess()?.access_token??null;}
-function hideLock(){const l=document.getElementById('lock-screen');if(!l)return;l.style.transition='opacity 0.35s';l.style.opacity='0';setTimeout(()=>l.style.display='none',380);}
-function showLock(){const l=document.getElementById('lock-screen');if(l){l.style.display='flex';l.style.opacity='1';}}
-function showV(id){['login-view','fid-offer','fid-lock'].forEach(v=>{const e=document.getElementById(v);if(e)e.style.display=v===id?'flex':'none';});}
-async function checkAuth(){const s=getSess();if(s){const last=localStorage.getItem('mkp_t'),cid=localStorage.getItem('mkp_cid'),fresh=last&&Date.now()-+last<AUTH_TTL;if(fresh||!cid||!window.PublicKeyCredential){hideLock();checkAuth();}else{showLock();showV('fid-lock');doFID();}return;}showLock();showV('login-view');}
-async function doLogin(){const e=document.getElementById('login-email').value.trim(),p=document.getElementById('login-pwd').value;if(!e||!p)return;const b=document.getElementById('login-btn');b.textContent='Entrando...';b.disabled=true;document.getElementById('login-err').textContent='';try{const r=await fetch(SUPABASE_URL_AUTH+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY},body:JSON.stringify({email:e,password:p})});const d=await r.json();if(!r.ok)throw new Error(d.error_description||'Error');storeSess(d);if(window.PublicKeyCredential&&!localStorage.getItem('mkp_cid')){showV('fid-offer');}else{hideLock();loadData();}}catch(ex){document.getElementById('login-err').textContent=ex.message;}finally{b.textContent='ACCEDER';b.disabled=false;}}
-function doLogout(){clearSess();showLock();showV('login-view');}
-async function refreshTok(){try{const s=JSON.parse(localStorage.getItem('mkp_s')||'{}');if(!s.refresh_token)throw 0;const r=await fetch(SUPABASE_URL_AUTH+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY},body:JSON.stringify({refresh_token:s.refresh_token})});if(!r.ok)throw 0;storeSess(await r.json());return true;}catch{clearSess();showLock();showV('login-view');return false;}}
-async function setupFID(){try{const c=await navigator.credentials.create({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),rp:{name:'MKPremium CRM',id:location.hostname},user:{id:crypto.getRandomValues(new Uint8Array(16)),name:'admin',displayName:'Admin'},pubKeyCredParams:[{alg:-7,type:'public-key'},{alg:-257,type:'public-key'}],authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required'},timeout:60000}});localStorage.setItem('mkp_cid',btoa(String.fromCharCode(...new Uint8Array(c.rawId))));hideLock();loadData();}catch{hideLock();loadData();}}
-async function doFID(){const cid=localStorage.getItem('mkp_cid');if(!cid){showV('login-view');return;}try{const ri=Uint8Array.from(atob(cid),c=>c.charCodeAt(0));await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),rpId:location.hostname,allowCredentials:[{type:'public-key',id:ri}],userVerification:'required',timeout:60000}});localStorage.setItem('mkp_t',''+Date.now());hideLock();loadData();}catch{document.getElementById('fid-err').textContent='Face ID fallido.';document.getElementById('fid-retry').style.display='block';}}
+const DASHBOARD_TOKEN = 'FROM_LOCALSTORAGE';
+const LK_TTL = 4*3600000;
+function lkGet(){return localStorage.getItem('mkp_pw');}
+function lkSet(v){localStorage.setItem('mkp_pw',v);localStorage.setItem('mkp_t',''+Date.now());}
+function lkClear(){localStorage.removeItem('mkp_pw');localStorage.removeItem('mkp_t');localStorage.removeItem('mkp_cid');}
+function lkFresh(){const t=localStorage.getItem('mkp_t');return t&&Date.now()-+t<LK_TTL;}
+function lkHide(){const l=document.getElementById('lock-screen');l.style.transition='opacity 0.35s';l.style.opacity='0';setTimeout(()=>l.style.display='none',380);}
+function lkShow(){const l=document.getElementById('lock-screen');l.style.display='flex';l.style.opacity='1';}
+async function lkCheck(){
+  if(lkGet()&&lkFresh()){lkHide();lkCheck();return;}
+  if(lkGet()&&localStorage.getItem('mkp_cid')&&window.PublicKeyCredential){
+    document.getElementById('lk-pwd').style.display='none';
+    document.getElementById('lk-btn').style.display='none';
+    document.getElementById('lk-fid').style.display='block';
+    document.getElementById('lk-sub').textContent='Usa Face ID para acceder';
+    lkFID();
+  }
+}
+async function lkSubmit(){
+  const pwd=document.getElementById('lk-pwd').value;
+  if(!pwd)return;
+  const b=document.getElementById('lk-btn');
+  b.textContent='Verificando...';b.disabled=true;
+  document.getElementById('lk-err').textContent='';
+  try{
+    const r=await fetch(DASHBOARD_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json','x-mk-token':pwd},body:'{}'});
+    if(!r.ok)throw new Error('Contrasena incorrecta');
+    lkSet(pwd);
+    if(window.PublicKeyCredential&&!localStorage.getItem('mkp_cid')){
+      const ok=confirm('¿Activar Face ID para no introducir contrasena cada vez?');
+      if(ok)await lkSetupFID();
+    }
+    lkHide();loadData();
+  }catch(e){document.getElementById('lk-err').textContent=e.message;}
+  finally{b.textContent='ACCEDER';b.disabled=false;}
+}
+function lkLogout(){lkClear();document.getElementById('lk-pwd').value='';document.getElementById('lk-pwd').style.display='block';document.getElementById('lk-btn').style.display='block';document.getElementById('lk-fid').style.display='none';document.getElementById('lk-sub').textContent='Introduce tu contrasena de acceso';lkShow();}
+async function lkSetupFID(){
+  try{
+    const c=await navigator.credentials.create({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),rp:{name:'MKPremium CRM',id:location.hostname},user:{id:crypto.getRandomValues(new Uint8Array(16)),name:'admin',displayName:'Admin'},pubKeyCredParams:[{alg:-7,type:'public-key'},{alg:-257,type:'public-key'}],authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required'},timeout:60000}});
+    localStorage.setItem('mkp_cid',btoa(String.fromCharCode(...new Uint8Array(c.rawId))));
+  }catch{}
+}
+async function lkFID(){
+  const cid=localStorage.getItem('mkp_cid');
+  if(!cid){lkShow();return;}
+  try{
+    const ri=Uint8Array.from(atob(cid),c=>c.charCodeAt(0));
+    await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),rpId:location.hostname,allowCredentials:[{type:'public-key',id:ri}],userVerification:'required',timeout:60000}});
+    localStorage.setItem('mkp_t',''+Date.now());
+    lkHide();loadData();
+  }catch{document.getElementById('lk-err').textContent='Face ID fallido. Pulsa Face ID para reintentar.';}
+}
+
 // ──────────────────────────────────────────────────────────
 
 const COLORS = ['#00ff87','#ff6b6b','#c77dff','#ffd93d','#ff9f43','#ff6b9d','#48dbfb','#00b8ff'];
@@ -472,7 +493,7 @@ async function loadData() {
   icon.innerHTML = '<div class="spinner" style="display:inline-block"></div>';
 
   try {
-    if (DASHBOARD_TOKEN === 'TU_TOKEN_AQUI') {
+    if (false) {
       document.getElementById('configWarn').style.display = 'block';
       toast('⚠️ Configura el token', true);
       useDemoData();
@@ -483,12 +504,12 @@ async function loadData() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + getToken()
+        'x-mk-token': lkGet()
       },
       body: '{}'
     });
 
-    if(res.status===401){const ok=await refreshTok();if(ok)loadData();return;}if(!res.ok)throw new Error('HTTP '+res.status);
+    if(res.status===401){lkShow();return;}if(!res.ok)throw new Error('HTTP '+res.status);
     dashData = await res.json();
     renderAll(dashData);
     toast('✓ Datos actualizados');
@@ -782,7 +803,7 @@ async function setSchedule(city) {
   try {
     const res = await fetch(DASHBOARD_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+      headers: { 'Content-Type': 'application/json', 'x-mk-token': lkGet() },
       body: JSON.stringify({ action: 'set_schedule', city, daily_limit: parseInt(limit) })
     });
     if (res.ok) toast(`✓ ${city}: ${limit} llamadas/día`);
@@ -808,7 +829,7 @@ async function pauseAll() {
   try {
     const res = await fetch(DASHBOARD_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+      headers: { 'Content-Type': 'application/json', 'x-mk-token': lkGet() },
       body: JSON.stringify({ action: 'pause_all' })
     });
     if (res.ok) toast('⏸ Llamadas pausadas');
