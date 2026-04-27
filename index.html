@@ -16,6 +16,18 @@
     }
     return window._mkF.apply(this,arguments);
   };
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js?v=1777255300742').then(function(reg){
+      reg.addEventListener('updatefound',function(){
+        var sw=reg.installing;
+        sw.addEventListener('statechange',function(){
+          if(sw.state==='installed'&&navigator.serviceWorker.controller){
+            window.location.reload();
+          }
+        });
+      });
+    });
+  }
 })();
 </script>
 <meta charset="UTF-8"/>
@@ -238,26 +250,23 @@ document.head.appendChild(link);
 <body>
 <div id="mk-lock">
   <div id="mk-v-login" class="mk-view">
-    <div class="mk-logo">&#127968;</div>
-    <div class="mk-title">MKPremium CRM</div>
+    <div class="mk-logo">&#127968;</div><div class="mk-title">MKPremium CRM</div>
     <div class="mk-sub">Acceso restringido</div>
     <input class="mk-input" id="mk-pw" type="password" placeholder="&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;"/>
-    <button class="mk-btn" id="mk-btn" onclick="mkLogin()">ACCEDER</button>
+    <button class="mk-btn" id="mk-login-btn" onclick="mkLogin()">ACCEDER</button>
     <div class="mk-err" id="mk-err"></div>
   </div>
   <div id="mk-v-fid-setup" class="mk-view">
-    <div class="mk-logo">&#128274;</div>
-    <div class="mk-title">Activar Face ID</div>
-    <div class="mk-sub">Usa Face ID para acceder sin contrase&#241;a la pr&#243;xima vez</div>
-    <button class="mk-btn" id="mk-setup-btn" onclick="mkSetupFID()">&#129520; ACTIVAR FACE ID</button>
+    <div class="mk-logo">&#129520;</div><div class="mk-title">Activar Face ID</div>
+    <div class="mk-sub">Toca el bot&#243;n y sigue las instrucciones de iOS</div>
+    <button class="mk-btn" id="mk-setup-btn" onclick="mkSetupFID()">ACTIVAR FACE ID</button>
     <button class="mk-btn sec" onclick="mkSkipFID()">Ahora no</button>
     <div class="mk-err" id="mk-err2"></div>
   </div>
   <div id="mk-v-fid-auth" class="mk-view">
-    <div class="mk-logo">&#128274;</div>
-    <div class="mk-title">MKPremium CRM</div>
-    <div class="mk-sub">Toca para usar Face ID</div>
-    <button class="mk-btn" id="mk-fid-btn" onclick="mkFID()">&#129520; FACE ID</button>
+    <div class="mk-logo">&#129520;</div><div class="mk-title">MKPremium CRM</div>
+    <div class="mk-sub">Toca para autenticarte</div>
+    <button class="mk-btn" id="mk-fid-btn" onclick="mkFID()">FACE ID</button>
     <button class="mk-btn sec" onclick="mkShowLogin()">Usar contrase&#241;a</button>
     <div class="mk-err" id="mk-err3"></div>
   </div>
@@ -830,50 +839,39 @@ loadData();
 
 <script>
 (function(){
-  var TTL=14400000;
+  var TTL=14400000,EP='https://fxeagnsvpclybwytfpih.supabase.co/functions/v1/dashboard';
   function gp(){return localStorage.getItem('mkp_pw');}
   function sp(v){localStorage.setItem('mkp_pw',v);localStorage.setItem('mkp_t',''+Date.now());}
   function fr(){var t=localStorage.getItem('mkp_t');return!!t&&Date.now()-+t<TTL;}
   function hl(){var l=document.getElementById('mk-lock');if(!l)return;l.style.transition='opacity 0.4s';l.style.opacity='0';setTimeout(function(){l.classList.remove('on');l.style.removeProperty('opacity');l.style.removeProperty('transition');},430);}
-  function sl(view){
-    var l=document.getElementById('mk-lock');
-    ['mk-v-login','mk-v-fid-setup','mk-v-fid-auth'].forEach(function(v){document.getElementById(v).classList.remove('active');});
-    document.getElementById(view).classList.add('active');
-    l.style.opacity='0';l.classList.add('on');
-    requestAnimationFrame(function(){l.style.transition='opacity 0.3s';l.style.opacity='1';});
-  }
-
+  function sv(id){['mk-v-login','mk-v-fid-setup','mk-v-fid-auth'].forEach(function(v){document.getElementById(v).classList.remove('active');});document.getElementById(id).classList.add('active');var l=document.getElementById('mk-lock');l.style.opacity='0';l.classList.add('on');requestAnimationFrame(function(){l.style.transition='opacity 0.3s';l.style.opacity='1';});}
+  function go(){hl();if(typeof loadData==='function')setTimeout(loadData,450);}
+  
   window.mkShowLogin=function(){
     document.getElementById('mk-pw').value='';
     document.getElementById('mk-err').textContent='';
-    sl('mk-v-login');
+    sv('mk-v-login');
   };
-
   window.mkLogout=function(){
     localStorage.removeItem('mkp_pw');localStorage.removeItem('mkp_t');
     window.mkShowLogin();
   };
-
   window.mkLogin=async function(){
     var pwd=document.getElementById('mk-pw').value;
     if(!pwd)return;
-    var b=document.getElementById('mk-btn');
+    var b=document.getElementById('mk-login-btn');
     b.textContent='Verificando...';b.disabled=true;
     document.getElementById('mk-err').textContent='';
     try{
-      var r=await window._mkF('https://fxeagnsvpclybwytfpih.supabase.co/functions/v1/dashboard',{method:'POST',headers:{'Content-Type':'application/json','x-mk-token':pwd},body:'{}'});
+      var r=await window._mkF(EP,{method:'POST',headers:{'Content-Type':'application/json','x-mk-token':pwd},body:'{}'});
       if(!r.ok)throw new Error('Contraseña incorrecta');
       sp(pwd);
-      if(window.PublicKeyCredential&&!localStorage.getItem('mkp_cid')){
-        sl('mk-v-fid-setup');
-      } else {
-        hl();
-        if(typeof loadData==='function')setTimeout(loadData,450);
-      }
+      var cid=localStorage.getItem('mkp_cid');
+      if(window.PublicKeyCredential&&!cid){sv('mk-v-fid-setup');}
+      else{go();}
     }catch(e){document.getElementById('mk-err').textContent=e.message||'Error';}
     finally{b.textContent='ACCEDER';b.disabled=false;}
   };
-
   window.mkSetupFID=async function(){
     var b=document.getElementById('mk-setup-btn');
     b.textContent='Activando...';b.disabled=true;
@@ -888,19 +886,13 @@ loadData();
         timeout:60000
       }});
       localStorage.setItem('mkp_cid',btoa(String.fromCharCode(...new Uint8Array(c.rawId))));
-      hl();
-      if(typeof loadData==='function')setTimeout(loadData,450);
+      go();
     }catch(e){
-      document.getElementById('mk-err2').textContent='Error activando Face ID. Prueba de nuevo.';
-      b.textContent='&#129520; ACTIVAR FACE ID';b.disabled=false;
+      document.getElementById('mk-err2').textContent='Error: '+e.message;
+      b.textContent='ACTIVAR FACE ID';b.disabled=false;
     }
   };
-
-  window.mkSkipFID=function(){
-    hl();
-    if(typeof loadData==='function')setTimeout(loadData,450);
-  };
-
+  window.mkSkipFID=function(){go();};
   window.mkFID=async function(){
     var cid=localStorage.getItem('mkp_cid');
     if(!cid){window.mkShowLogin();return;}
@@ -913,23 +905,20 @@ loadData();
         challenge:crypto.getRandomValues(new Uint8Array(32)),
         rpId:location.hostname,
         allowCredentials:[{type:'public-key',id:ri}],
-        userVerification:'required',
-        timeout:60000
+        userVerification:'required',timeout:60000
       }});
       localStorage.setItem('mkp_t',''+Date.now());
-      hl();
-      if(typeof loadData==='function')setTimeout(loadData,450);
+      go();
     }catch(e){
       document.getElementById('mk-err3').textContent='Face ID fallido. Reintenta.';
-      b.textContent='&#129520; FACE ID';b.disabled=false;
+      b.textContent='FACE ID';b.disabled=false;
     }
   };
-
-  // Init
-  var cid=localStorage.getItem('mkp_cid');
-  if(gp()&&fr()){if(typeof loadData==='function')setTimeout(loadData,100);}
-  else if(gp()&&cid&&window.PublicKeyCredential){sl('mk-v-fid-auth');setTimeout(mkFID,300);}
-  else{sl('mk-v-login');}
+  // Init - clear stale FID if any error
+  var pw=gp(),cid=localStorage.getItem('mkp_cid');
+  if(pw&&fr()){go();}
+  else if(pw&&cid&&window.PublicKeyCredential){sv('mk-v-fid-auth');setTimeout(mkFID,300);}
+  else{sv('mk-v-login');}
 })();
 </script>
 </body>
