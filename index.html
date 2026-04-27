@@ -217,11 +217,11 @@ document.head.appendChild(link);
     font-size: 12px; color: var(--yellow);
   }
 
-#mk-lock{position:fixed;inset:0;z-index:9999;background:#07070f;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;opacity:0;}
-#mk-lock.on{display:flex;opacity:1;}
+#mk-lock{position:fixed;inset:0;z-index:9999;background:#07070f;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;}
+#mk-lock.on{display:flex;}
 .mk-logo{font-size:60px;}
 .mk-title{font-size:22px;font-weight:700;font-family:system-ui;color:#fff;}
-.mk-sub{font-size:12px;color:rgba(255,255,255,0.4);text-align:center;}
+.mk-sub{font-size:12px;color:rgba(255,255,255,0.4);text-align:center;line-height:1.6;max-width:280px;}
 .mk-input{width:100%;max-width:320px;padding:14px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:#fff;font-size:18px;outline:none;box-sizing:border-box;text-align:center;letter-spacing:3px;}
 .mk-input:focus{border-color:rgba(0,255,135,0.5);}
 .mk-btn{width:100%;max-width:320px;padding:16px;border-radius:12px;background:rgba(0,255,135,0.12);border:1px solid rgba(0,255,135,0.3);color:#00ff87;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all 0.2s;}
@@ -229,19 +229,38 @@ document.head.appendChild(link);
 .mk-btn:disabled{opacity:0.4;}
 .mk-btn.sec{background:none;border-color:rgba(255,255,255,0.12);color:rgba(255,255,255,0.4);font-size:12px;padding:12px;}
 .mk-err{font-size:12px;color:#ff6b6b;min-height:18px;text-align:center;max-width:320px;}
-.mk-logout{background:none;border:none;color:rgba(255,255,255,0.2);font-size:13px;cursor:pointer;padding:4px 8px;}</style>
+.mk-logout{background:none;border:none;color:rgba(255,255,255,0.2);font-size:13px;cursor:pointer;padding:4px 8px;}
+.mk-view{display:none;flex-direction:column;align-items:center;gap:16px;width:100%;}
+.mk-view.active{display:flex;}
+</style>
 
 </head>
 <body>
-<div id="mk-lock" class="on">
-<div class="mk-logo" id="mk-logo">&#127968;</div>
-<div class="mk-title">MKPremium CRM</div>
-<div class="mk-sub" id="mk-sub">Acceso restringido</div>
-<input class="mk-input" id="mk-pw" type="password" placeholder="&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;"/>
-<button class="mk-btn" id="mk-btn" onclick="mkLogin()">ACCEDER</button>
-<button class="mk-btn" id="mk-fid-btn" onclick="mkFID()" style="display:none">&#128274; FACE ID</button>
-<button class="mk-btn sec" id="mk-pwd-btn" onclick="mkShowPwd()" style="display:none">Usar contrase&#241;a</button>
-<div class="mk-err" id="mk-err"></div>
+<div id="mk-lock">
+  <div id="mk-v-login" class="mk-view">
+    <div class="mk-logo">&#127968;</div>
+    <div class="mk-title">MKPremium CRM</div>
+    <div class="mk-sub">Acceso restringido</div>
+    <input class="mk-input" id="mk-pw" type="password" placeholder="&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;"/>
+    <button class="mk-btn" id="mk-btn" onclick="mkLogin()">ACCEDER</button>
+    <div class="mk-err" id="mk-err"></div>
+  </div>
+  <div id="mk-v-fid-setup" class="mk-view">
+    <div class="mk-logo">&#128274;</div>
+    <div class="mk-title">Activar Face ID</div>
+    <div class="mk-sub">Usa Face ID para acceder sin contrase&#241;a la pr&#243;xima vez</div>
+    <button class="mk-btn" id="mk-setup-btn" onclick="mkSetupFID()">&#129520; ACTIVAR FACE ID</button>
+    <button class="mk-btn sec" onclick="mkSkipFID()">Ahora no</button>
+    <div class="mk-err" id="mk-err2"></div>
+  </div>
+  <div id="mk-v-fid-auth" class="mk-view">
+    <div class="mk-logo">&#128274;</div>
+    <div class="mk-title">MKPremium CRM</div>
+    <div class="mk-sub">Toca para usar Face ID</div>
+    <button class="mk-btn" id="mk-fid-btn" onclick="mkFID()">&#129520; FACE ID</button>
+    <button class="mk-btn sec" onclick="mkShowLogin()">Usar contrase&#241;a</button>
+    <div class="mk-err" id="mk-err3"></div>
+  </div>
 </div>
 
 
@@ -815,60 +834,50 @@ loadData();
   function gp(){return localStorage.getItem('mkp_pw');}
   function sp(v){localStorage.setItem('mkp_pw',v);localStorage.setItem('mkp_t',''+Date.now());}
   function fr(){var t=localStorage.getItem('mkp_t');return!!t&&Date.now()-+t<TTL;}
-  function hl(){var l=document.getElementById('mk-lock');if(!l)return;l.style.transition='opacity 0.4s';l.style.opacity='0';setTimeout(function(){l.classList.remove('on');l.style.opacity='';},420);}
-  function sl(){var l=document.getElementById('mk-lock');if(l){l.style.opacity='1';l.classList.add('on');}}
-  function err(m){document.getElementById('mk-err').textContent=m||'';}
+  function hl(){var l=document.getElementById('mk-lock');if(!l)return;l.style.transition='opacity 0.4s';l.style.opacity='0';setTimeout(function(){l.classList.remove('on');l.style.removeProperty('opacity');l.style.removeProperty('transition');},430);}
+  function sl(view){
+    var l=document.getElementById('mk-lock');
+    ['mk-v-login','mk-v-fid-setup','mk-v-fid-auth'].forEach(function(v){document.getElementById(v).classList.remove('active');});
+    document.getElementById(view).classList.add('active');
+    l.style.opacity='0';l.classList.add('on');
+    requestAnimationFrame(function(){l.style.transition='opacity 0.3s';l.style.opacity='1';});
+  }
 
-  var pwEl=document.getElementById('mk-pw');
-  if(pwEl){pwEl.addEventListener('keydown',function(e){if(e.key==='Enter')mkLogin();});}
-
-  window.mkShowPwd=function(){
-    document.getElementById('mk-pw').style.display='block';
-    document.getElementById('mk-btn').style.display='block';
-    document.getElementById('mk-fid-btn').style.display='none';
-    document.getElementById('mk-pwd-btn').style.display='none';
-    document.getElementById('mk-sub').textContent='Introduce tu contrasena';
-    err('');
+  window.mkShowLogin=function(){
+    document.getElementById('mk-pw').value='';
+    document.getElementById('mk-err').textContent='';
+    sl('mk-v-login');
   };
 
   window.mkLogout=function(){
     localStorage.removeItem('mkp_pw');localStorage.removeItem('mkp_t');
-    if(pwEl){pwEl.value='';pwEl.style.display='block';}
-    document.getElementById('mk-btn').style.display='block';
-    document.getElementById('mk-fid-btn').style.display='none';
-    document.getElementById('mk-pwd-btn').style.display='none';
-    document.getElementById('mk-sub').textContent='Acceso restringido';
-    err('');sl();
+    window.mkShowLogin();
   };
 
   window.mkLogin=async function(){
     var pwd=document.getElementById('mk-pw').value;
     if(!pwd)return;
     var b=document.getElementById('mk-btn');
-    b.textContent='Verificando...';b.disabled=true;err('');
+    b.textContent='Verificando...';b.disabled=true;
+    document.getElementById('mk-err').textContent='';
     try{
       var r=await window._mkF('https://fxeagnsvpclybwytfpih.supabase.co/functions/v1/dashboard',{method:'POST',headers:{'Content-Type':'application/json','x-mk-token':pwd},body:'{}'});
-      if(!r.ok)throw new Error('Contrasena incorrecta');
+      if(!r.ok)throw new Error('Contraseña incorrecta');
       sp(pwd);
-      // Offer Face ID setup
       if(window.PublicKeyCredential&&!localStorage.getItem('mkp_cid')){
-        hl();
-        setTimeout(async function(){
-          try{
-            var ok=confirm('¿Activar Face ID para no introducir contrasena cada vez?');
-            if(ok)await mkSetupFID();
-          }catch(e){}
-          if(typeof loadData==='function')loadData();
-        },450);
+        sl('mk-v-fid-setup');
       } else {
         hl();
         if(typeof loadData==='function')setTimeout(loadData,450);
       }
-    }catch(e){err(e.message||'Error');}
+    }catch(e){document.getElementById('mk-err').textContent=e.message||'Error';}
     finally{b.textContent='ACCEDER';b.disabled=false;}
   };
 
   window.mkSetupFID=async function(){
+    var b=document.getElementById('mk-setup-btn');
+    b.textContent='Activando...';b.disabled=true;
+    document.getElementById('mk-err2').textContent='';
     try{
       var c=await navigator.credentials.create({publicKey:{
         challenge:crypto.getRandomValues(new Uint8Array(32)),
@@ -879,14 +888,25 @@ loadData();
         timeout:60000
       }});
       localStorage.setItem('mkp_cid',btoa(String.fromCharCode(...new Uint8Array(c.rawId))));
-    }catch(e){console.log('FID setup skipped',e);}
+      hl();
+      if(typeof loadData==='function')setTimeout(loadData,450);
+    }catch(e){
+      document.getElementById('mk-err2').textContent='Error activando Face ID. Prueba de nuevo.';
+      b.textContent='&#129520; ACTIVAR FACE ID';b.disabled=false;
+    }
+  };
+
+  window.mkSkipFID=function(){
+    hl();
+    if(typeof loadData==='function')setTimeout(loadData,450);
   };
 
   window.mkFID=async function(){
     var cid=localStorage.getItem('mkp_cid');
-    if(!cid){window.mkShowPwd();return;}
-    var fb=document.getElementById('mk-fid-btn');
-    fb.textContent='⏳ Verificando...';fb.disabled=true;err('');
+    if(!cid){window.mkShowLogin();return;}
+    var b=document.getElementById('mk-fid-btn');
+    b.textContent='Verificando...';b.disabled=true;
+    document.getElementById('mk-err3').textContent='';
     try{
       var ri=Uint8Array.from(atob(cid),function(c){return c.charCodeAt(0);});
       await navigator.credentials.get({publicKey:{
@@ -900,27 +920,16 @@ loadData();
       hl();
       if(typeof loadData==='function')setTimeout(loadData,450);
     }catch(e){
-      err('Face ID fallido. Reintenta o usa contrasena.');
-      fb.textContent='🔒 FACE ID';
-      fb.disabled=false;
+      document.getElementById('mk-err3').textContent='Face ID fallido. Reintenta.';
+      b.textContent='&#129520; FACE ID';b.disabled=false;
     }
   };
 
   // Init
   var cid=localStorage.getItem('mkp_cid');
-  if(gp()&&fr()){hl();if(typeof loadData==='function')setTimeout(loadData,100);}
-  else if(gp()&&cid&&window.PublicKeyCredential){
-    // Show Face ID screen
-    document.getElementById('mk-logo').textContent='🔒';
-    document.getElementById('mk-sub').textContent='Usa Face ID para acceder';
-    document.getElementById('mk-pw').style.display='none';
-    document.getElementById('mk-btn').style.display='none';
-    document.getElementById('mk-fid-btn').style.display='block';
-    document.getElementById('mk-pwd-btn').style.display='block';
-    sl();
-    mkFID();
-  }
-  else sl();
+  if(gp()&&fr()){if(typeof loadData==='function')setTimeout(loadData,100);}
+  else if(gp()&&cid&&window.PublicKeyCredential){sl('mk-v-fid-auth');setTimeout(mkFID,300);}
+  else{sl('mk-v-login');}
 })();
 </script>
 </body>
