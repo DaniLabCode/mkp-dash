@@ -17,13 +17,11 @@
     return window._mkF.apply(this,arguments);
   };
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('./sw.js?v=1777255322804').then(function(reg){
+    navigator.serviceWorker.register('./sw.js?v=1777255612200').then(function(reg){
       reg.addEventListener('updatefound',function(){
         var sw=reg.installing;
         sw.addEventListener('statechange',function(){
-          if(sw.state==='installed'&&navigator.serviceWorker.controller){
-            window.location.reload();
-          }
+          if(sw.state==='installed'&&navigator.serviceWorker.controller)window.location.reload();
         });
       });
     });
@@ -258,7 +256,7 @@ document.head.appendChild(link);
   </div>
   <div id="mk-v-fid-setup" class="mk-view">
     <div class="mk-logo">&#129520;</div><div class="mk-title">Activar Face ID</div>
-    <div class="mk-sub">Toca el bot&#243;n y sigue las instrucciones de iOS</div>
+    <div class="mk-sub">Toca el bot&#243;n y escanea tu cara</div>
     <button class="mk-btn" id="mk-setup-btn" onclick="mkSetupFID()">ACTIVAR FACE ID</button>
     <button class="mk-btn sec" onclick="mkSkipFID()">Ahora no</button>
     <div class="mk-err" id="mk-err2"></div>
@@ -846,16 +844,8 @@ loadData();
   function hl(){var l=document.getElementById('mk-lock');if(!l)return;l.style.transition='opacity 0.4s';l.style.opacity='0';setTimeout(function(){l.classList.remove('on');l.style.removeProperty('opacity');l.style.removeProperty('transition');},430);}
   function sv(id){['mk-v-login','mk-v-fid-setup','mk-v-fid-auth'].forEach(function(v){document.getElementById(v).classList.remove('active');});document.getElementById(id).classList.add('active');var l=document.getElementById('mk-lock');l.style.opacity='0';l.classList.add('on');requestAnimationFrame(function(){l.style.transition='opacity 0.3s';l.style.opacity='1';});}
   function go(){hl();if(typeof loadData==='function')setTimeout(loadData,450);}
-  
-  window.mkShowLogin=function(){
-    document.getElementById('mk-pw').value='';
-    document.getElementById('mk-err').textContent='';
-    sv('mk-v-login');
-  };
-  window.mkLogout=function(){
-    localStorage.removeItem('mkp_pw');localStorage.removeItem('mkp_t');
-    window.mkShowLogin();
-  };
+  window.mkShowLogin=function(){document.getElementById('mk-pw').value='';document.getElementById('mk-err').textContent='';sv('mk-v-login');};
+  window.mkLogout=function(){localStorage.removeItem('mkp_pw');localStorage.removeItem('mkp_t');window.mkShowLogin();};
   window.mkLogin=async function(){
     var pwd=document.getElementById('mk-pw').value;
     if(!pwd)return;
@@ -866,8 +856,9 @@ loadData();
       var r=await window._mkF(EP,{method:'POST',headers:{'Content-Type':'application/json','x-mk-token':pwd},body:'{}'});
       if(!r.ok)throw new Error('Contraseña incorrecta');
       sp(pwd);
-      var cid=localStorage.getItem('mkp_cid');
-      if(window.PublicKeyCredential&&!cid){sv('mk-v-fid-setup');}
+      // Always clear old FID credential and offer fresh setup
+      localStorage.removeItem('mkp_cid');
+      if(window.PublicKeyCredential){sv('mk-v-fid-setup');}
       else{go();}
     }catch(e){document.getElementById('mk-err').textContent=e.message||'Error';}
     finally{b.textContent='ACCEDER';b.disabled=false;}
@@ -914,7 +905,6 @@ loadData();
       b.textContent='FACE ID';b.disabled=false;
     }
   };
-  // Init - clear stale FID if any error
   var pw=gp(),cid=localStorage.getItem('mkp_cid');
   if(pw&&fr()){go();}
   else if(pw&&cid&&window.PublicKeyCredential){sv('mk-v-fid-auth');setTimeout(mkFID,300);}
