@@ -2,6 +2,22 @@
 
 <html lang="es">
 <head>
+<script>
+(function(){
+  window._mkF=window.fetch;
+  window.fetch=function(url,opts){
+    if(typeof url==='string'&&url.includes('functions/v1/dashboard')&&opts&&opts.method==='POST'){
+      var pw=localStorage.getItem('mkp_pw'),t=localStorage.getItem('mkp_t');
+      if(!pw||!t||Date.now()-+t>14400000){return new Promise(function(){});}
+      opts=Object.assign({},opts);
+      opts.headers=Object.assign({},opts.headers||{});
+      opts.headers['x-mk-token']=pw;
+      delete opts.headers['x-dashboard-token'];
+    }
+    return window._mkF.apply(this,arguments);
+  };
+})();
+</script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -201,29 +217,31 @@ document.head.appendChild(link);
     font-size: 12px; color: var(--yellow);
   }
 
-#lock-screen{position:fixed;inset:0;z-index:9999;background:#07070f;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;}
-.lk-logo{font-size:60px;}
-.lk-title{font-size:22px;font-weight:700;font-family:system-ui;color:#fff;}
-.lk-sub{font-size:12px;color:rgba(255,255,255,0.4);text-align:center;}
-.lk-input{width:100%;max-width:320px;padding:14px 16px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:#fff;font-size:16px;outline:none;box-sizing:border-box;text-align:center;}
-.lk-input:focus{border-color:rgba(0,255,135,0.5);}
-.lk-btn{width:100%;max-width:320px;padding:16px;border-radius:12px;background:rgba(0,255,135,0.12);border:1px solid rgba(0,255,135,0.3);color:#00ff87;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all 0.2s;}
-.lk-btn:active{transform:scale(0.98);}
-.lk-btn.sec{background:none;border-color:rgba(255,255,255,0.1);color:rgba(255,255,255,0.35);font-size:12px;padding:12px;}
-.lk-err{font-size:12px;color:#ff6b6b;min-height:18px;text-align:center;}
-.lk-logout{background:none;border:none;color:rgba(255,255,255,0.2);font-size:13px;cursor:pointer;padding:4px 8px;}
-</style>
+#mk-lock{position:fixed;inset:0;z-index:9999;background:#07070f;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;opacity:0;}
+#mk-lock.on{display:flex;opacity:1;}
+.mk-logo{font-size:60px;}
+.mk-title{font-size:22px;font-weight:700;font-family:system-ui;color:#fff;}
+.mk-sub{font-size:12px;color:rgba(255,255,255,0.4);text-align:center;}
+.mk-input{width:100%;max-width:320px;padding:14px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:#fff;font-size:18px;outline:none;box-sizing:border-box;text-align:center;letter-spacing:3px;}
+.mk-input:focus{border-color:rgba(0,255,135,0.5);}
+.mk-btn{width:100%;max-width:320px;padding:16px;border-radius:12px;background:rgba(0,255,135,0.12);border:1px solid rgba(0,255,135,0.3);color:#00ff87;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all 0.2s;}
+.mk-btn:active{opacity:0.8;}
+.mk-btn:disabled{opacity:0.4;}
+.mk-btn.sec{background:none;border-color:rgba(255,255,255,0.12);color:rgba(255,255,255,0.4);font-size:12px;padding:12px;}
+.mk-err{font-size:12px;color:#ff6b6b;min-height:18px;text-align:center;max-width:320px;}
+.mk-logout{background:none;border:none;color:rgba(255,255,255,0.2);font-size:13px;cursor:pointer;padding:4px 8px;}</style>
 
 </head>
 <body>
-<div id="lock-screen">
-<div class="lk-logo">&#127968;</div>
-<div class="lk-title">MKPremium CRM</div>
-<div class="lk-sub" id="lk-sub">Introduce tu contrasena de acceso</div>
-<input class="lk-input" id="lk-pwd" type="password" placeholder="Contrasena" onkeydown="if(event.key==='Enter')lkSubmit()"/>
-<button class="lk-btn" id="lk-btn" onclick="lkSubmit()">ACCEDER</button>
-<button class="lk-btn sec" id="lk-fid" onclick="lkFID()" style="display:none">&#128274; Face ID</button>
-<div class="lk-err" id="lk-err"></div>
+<div id="mk-lock" class="on">
+<div class="mk-logo" id="mk-logo">&#127968;</div>
+<div class="mk-title">MKPremium CRM</div>
+<div class="mk-sub" id="mk-sub">Acceso restringido</div>
+<input class="mk-input" id="mk-pw" type="password" placeholder="&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;"/>
+<button class="mk-btn" id="mk-btn" onclick="mkLogin()">ACCEDER</button>
+<button class="mk-btn" id="mk-fid-btn" onclick="mkFID()" style="display:none">&#128274; FACE ID</button>
+<button class="mk-btn sec" id="mk-pwd-btn" onclick="mkShowPwd()" style="display:none">Usar contrase&#241;a</button>
+<div class="mk-err" id="mk-err"></div>
 </div>
 
 
@@ -238,7 +256,7 @@ document.head.appendChild(link);
     <span class="status-dot" id="statusDot"></span>
     <span style="font-size:16px;font-weight:700;font-family:system-ui">MKPremium CRM</span>
   </div>
-  <button class="lk-logout" onclick="lkLogout()" title="Cerrar sesion">&#128274;</button><button class="refresh-btn" id="refreshBtn" onclick="loadData()">
+  <button class="mk-logout" onclick="window.mkLogout()" title="Salir">&#128274;</button><button class="refresh-btn" id="refreshBtn" onclick="loadData()">
     <span id="refreshIcon">↻</span> REFRESH
   </button>
 </div>
@@ -408,60 +426,7 @@ document.head.appendChild(link);
 <script>
 // ─── CONFIG ────────────────────────────────────────────────
 const DASHBOARD_ENDPOINT = 'https://fxeagnsvpclybwytfpih.supabase.co/functions/v1/dashboard';
-const DASHBOARD_TOKEN = 'FROM_LOCALSTORAGE';
-const LK_TTL = 4*3600000;
-function lkGet(){return localStorage.getItem('mkp_pw');}
-function lkSet(v){localStorage.setItem('mkp_pw',v);localStorage.setItem('mkp_t',''+Date.now());}
-function lkClear(){localStorage.removeItem('mkp_pw');localStorage.removeItem('mkp_t');localStorage.removeItem('mkp_cid');}
-function lkFresh(){const t=localStorage.getItem('mkp_t');return t&&Date.now()-+t<LK_TTL;}
-function lkHide(){const l=document.getElementById('lock-screen');l.style.transition='opacity 0.35s';l.style.opacity='0';setTimeout(()=>l.style.display='none',380);}
-function lkShow(){const l=document.getElementById('lock-screen');l.style.display='flex';l.style.opacity='1';}
-async function lkCheck(){
-  if(lkGet()&&lkFresh()){lkHide();lkCheck();return;}
-  if(lkGet()&&localStorage.getItem('mkp_cid')&&window.PublicKeyCredential){
-    document.getElementById('lk-pwd').style.display='none';
-    document.getElementById('lk-btn').style.display='none';
-    document.getElementById('lk-fid').style.display='block';
-    document.getElementById('lk-sub').textContent='Usa Face ID para acceder';
-    lkFID();
-  }
-}
-async function lkSubmit(){
-  const pwd=document.getElementById('lk-pwd').value;
-  if(!pwd)return;
-  const b=document.getElementById('lk-btn');
-  b.textContent='Verificando...';b.disabled=true;
-  document.getElementById('lk-err').textContent='';
-  try{
-    const r=await fetch(DASHBOARD_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json','x-mk-token':pwd},body:'{}'});
-    if(!r.ok)throw new Error('Contrasena incorrecta');
-    lkSet(pwd);
-    if(window.PublicKeyCredential&&!localStorage.getItem('mkp_cid')){
-      const ok=confirm('¿Activar Face ID para no introducir contrasena cada vez?');
-      if(ok)await lkSetupFID();
-    }
-    lkHide();loadData();
-  }catch(e){document.getElementById('lk-err').textContent=e.message;}
-  finally{b.textContent='ACCEDER';b.disabled=false;}
-}
-function lkLogout(){lkClear();document.getElementById('lk-pwd').value='';document.getElementById('lk-pwd').style.display='block';document.getElementById('lk-btn').style.display='block';document.getElementById('lk-fid').style.display='none';document.getElementById('lk-sub').textContent='Introduce tu contrasena de acceso';lkShow();}
-async function lkSetupFID(){
-  try{
-    const c=await navigator.credentials.create({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),rp:{name:'MKPremium CRM',id:location.hostname},user:{id:crypto.getRandomValues(new Uint8Array(16)),name:'admin',displayName:'Admin'},pubKeyCredParams:[{alg:-7,type:'public-key'},{alg:-257,type:'public-key'}],authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required'},timeout:60000}});
-    localStorage.setItem('mkp_cid',btoa(String.fromCharCode(...new Uint8Array(c.rawId))));
-  }catch{}
-}
-async function lkFID(){
-  const cid=localStorage.getItem('mkp_cid');
-  if(!cid){lkShow();return;}
-  try{
-    const ri=Uint8Array.from(atob(cid),c=>c.charCodeAt(0));
-    await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),rpId:location.hostname,allowCredentials:[{type:'public-key',id:ri}],userVerification:'required',timeout:60000}});
-    localStorage.setItem('mkp_t',''+Date.now());
-    lkHide();loadData();
-  }catch{document.getElementById('lk-err').textContent='Face ID fallido. Pulsa Face ID para reintentar.';}
-}
-
+const DASHBOARD_TOKEN = '1efd673f609386d1a0614ba1b99fc02b1227076e4fc92f4897e1501bf4552211';
 // ──────────────────────────────────────────────────────────
 
 const COLORS = ['#00ff87','#ff6b6b','#c77dff','#ffd93d','#ff9f43','#ff6b9d','#48dbfb','#00b8ff'];
@@ -493,7 +458,7 @@ async function loadData() {
   icon.innerHTML = '<div class="spinner" style="display:inline-block"></div>';
 
   try {
-    if (false) {
+    if (DASHBOARD_TOKEN === 'TU_TOKEN_AQUI') {
       document.getElementById('configWarn').style.display = 'block';
       toast('⚠️ Configura el token', true);
       useDemoData();
@@ -504,12 +469,12 @@ async function loadData() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-mk-token': lkGet()
+        'x-dashboard-token': DASHBOARD_TOKEN
       },
       body: '{}'
     });
 
-    if(res.status===401){lkShow();return;}if(!res.ok)throw new Error('HTTP '+res.status);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     dashData = await res.json();
     renderAll(dashData);
     toast('✓ Datos actualizados');
@@ -803,7 +768,7 @@ async function setSchedule(city) {
   try {
     const res = await fetch(DASHBOARD_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-mk-token': lkGet() },
+      headers: { 'Content-Type': 'application/json', 'x-dashboard-token': DASHBOARD_TOKEN },
       body: JSON.stringify({ action: 'set_schedule', city, daily_limit: parseInt(limit) })
     });
     if (res.ok) toast(`✓ ${city}: ${limit} llamadas/día`);
@@ -829,7 +794,7 @@ async function pauseAll() {
   try {
     const res = await fetch(DASHBOARD_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-mk-token': lkGet() },
+      headers: { 'Content-Type': 'application/json', 'x-dashboard-token': DASHBOARD_TOKEN },
       body: JSON.stringify({ action: 'pause_all' })
     });
     if (res.ok) toast('⏸ Llamadas pausadas');
@@ -844,5 +809,119 @@ setInterval(loadData, 60000);
 loadData();
 </script>
 
+<script>
+(function(){
+  var TTL=14400000;
+  function gp(){return localStorage.getItem('mkp_pw');}
+  function sp(v){localStorage.setItem('mkp_pw',v);localStorage.setItem('mkp_t',''+Date.now());}
+  function fr(){var t=localStorage.getItem('mkp_t');return!!t&&Date.now()-+t<TTL;}
+  function hl(){var l=document.getElementById('mk-lock');if(!l)return;l.style.transition='opacity 0.4s';l.style.opacity='0';setTimeout(function(){l.classList.remove('on');l.style.opacity='';},420);}
+  function sl(){var l=document.getElementById('mk-lock');if(l){l.style.opacity='1';l.classList.add('on');}}
+  function err(m){document.getElementById('mk-err').textContent=m||'';}
+
+  var pwEl=document.getElementById('mk-pw');
+  if(pwEl){pwEl.addEventListener('keydown',function(e){if(e.key==='Enter')mkLogin();});}
+
+  window.mkShowPwd=function(){
+    document.getElementById('mk-pw').style.display='block';
+    document.getElementById('mk-btn').style.display='block';
+    document.getElementById('mk-fid-btn').style.display='none';
+    document.getElementById('mk-pwd-btn').style.display='none';
+    document.getElementById('mk-sub').textContent='Introduce tu contrasena';
+    err('');
+  };
+
+  window.mkLogout=function(){
+    localStorage.removeItem('mkp_pw');localStorage.removeItem('mkp_t');
+    if(pwEl){pwEl.value='';pwEl.style.display='block';}
+    document.getElementById('mk-btn').style.display='block';
+    document.getElementById('mk-fid-btn').style.display='none';
+    document.getElementById('mk-pwd-btn').style.display='none';
+    document.getElementById('mk-sub').textContent='Acceso restringido';
+    err('');sl();
+  };
+
+  window.mkLogin=async function(){
+    var pwd=document.getElementById('mk-pw').value;
+    if(!pwd)return;
+    var b=document.getElementById('mk-btn');
+    b.textContent='Verificando...';b.disabled=true;err('');
+    try{
+      var r=await window._mkF('https://fxeagnsvpclybwytfpih.supabase.co/functions/v1/dashboard',{method:'POST',headers:{'Content-Type':'application/json','x-mk-token':pwd},body:'{}'});
+      if(!r.ok)throw new Error('Contrasena incorrecta');
+      sp(pwd);
+      // Offer Face ID setup
+      if(window.PublicKeyCredential&&!localStorage.getItem('mkp_cid')){
+        hl();
+        setTimeout(async function(){
+          try{
+            var ok=confirm('¿Activar Face ID para no introducir contrasena cada vez?');
+            if(ok)await mkSetupFID();
+          }catch(e){}
+          if(typeof loadData==='function')loadData();
+        },450);
+      } else {
+        hl();
+        if(typeof loadData==='function')setTimeout(loadData,450);
+      }
+    }catch(e){err(e.message||'Error');}
+    finally{b.textContent='ACCEDER';b.disabled=false;}
+  };
+
+  window.mkSetupFID=async function(){
+    try{
+      var c=await navigator.credentials.create({publicKey:{
+        challenge:crypto.getRandomValues(new Uint8Array(32)),
+        rp:{name:'MKPremium CRM',id:location.hostname},
+        user:{id:crypto.getRandomValues(new Uint8Array(16)),name:'admin',displayName:'Admin MK'},
+        pubKeyCredParams:[{alg:-7,type:'public-key'},{alg:-257,type:'public-key'}],
+        authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required'},
+        timeout:60000
+      }});
+      localStorage.setItem('mkp_cid',btoa(String.fromCharCode(...new Uint8Array(c.rawId))));
+    }catch(e){console.log('FID setup skipped',e);}
+  };
+
+  window.mkFID=async function(){
+    var cid=localStorage.getItem('mkp_cid');
+    if(!cid){window.mkShowPwd();return;}
+    var fb=document.getElementById('mk-fid-btn');
+    fb.textContent='⏳ Verificando...';fb.disabled=true;err('');
+    try{
+      var ri=Uint8Array.from(atob(cid),function(c){return c.charCodeAt(0);});
+      await navigator.credentials.get({publicKey:{
+        challenge:crypto.getRandomValues(new Uint8Array(32)),
+        rpId:location.hostname,
+        allowCredentials:[{type:'public-key',id:ri}],
+        userVerification:'required',
+        timeout:60000
+      }});
+      localStorage.setItem('mkp_t',''+Date.now());
+      hl();
+      if(typeof loadData==='function')setTimeout(loadData,450);
+    }catch(e){
+      err('Face ID fallido. Reintenta o usa contrasena.');
+      fb.textContent='🔒 FACE ID';
+      fb.disabled=false;
+    }
+  };
+
+  // Init
+  var cid=localStorage.getItem('mkp_cid');
+  if(gp()&&fr()){hl();if(typeof loadData==='function')setTimeout(loadData,100);}
+  else if(gp()&&cid&&window.PublicKeyCredential){
+    // Show Face ID screen
+    document.getElementById('mk-logo').textContent='🔒';
+    document.getElementById('mk-sub').textContent='Usa Face ID para acceder';
+    document.getElementById('mk-pw').style.display='none';
+    document.getElementById('mk-btn').style.display='none';
+    document.getElementById('mk-fid-btn').style.display='block';
+    document.getElementById('mk-pwd-btn').style.display='block';
+    sl();
+    mkFID();
+  }
+  else sl();
+})();
+</script>
 </body>
 </html>
