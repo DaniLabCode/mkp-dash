@@ -238,7 +238,7 @@ document.head.appendChild(link);
   <div class="auth-title">MKPremium CRM</div>
   <button id="fid-retry" class="auth-btn" onclick="doFID()" style="display:none">REINTENTAR FACE ID</button>
   <div id="fid-err" class="auth-err"></div>
-  <button class="auth-btn sec" onclick="clearSess();showV('login-view')">Usar contrasena</button>
+  <button class="auth-btn sec" onclick="clearSess();showLock();showV('login-view')">Usar contrasena</button>
 </div>
 </div>
 
@@ -423,8 +423,11 @@ document.head.appendChild(link);
 
 <script>
 // ─── CONFIG ────────────────────────────────────────────────
-// config in auth block
-const _SU='https://fxeagnsvpclybwytfpih.supabase.co',_AK='sb_publishable_1FpYpj1N7nieskBnKNsRNA_LiniqFgC',_EP='https://fxeagnsvpclybwytfpih.supabase.co/functions/v1/dashboard',_TTL=4*3600000;
+const DASHBOARD_ENDPOINT = 'https://fxeagnsvpclybwytfpih.supabase.co/functions/v1/dashboard';
+const DASHBOARD_TOKEN = 'PLACEHOLDER_TOKEN';
+const SUPABASE_URL_AUTH = 'https://fxeagnsvpclybwytfpih.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_1FpYpj1N7nieskBnKNsRNA_LiniqFgC';
+const AUTH_TTL = 4*3600000;
 function getSess(){try{const s=localStorage.getItem('mkp_s');if(!s)return null;const p=JSON.parse(s);if(p.expires_at*1000<Date.now()+60000)return null;return p;}catch{return null;}}
 function storeSess(s){localStorage.setItem('mkp_s',JSON.stringify(s));localStorage.setItem('mkp_t',''+Date.now());}
 function clearSess(){['mkp_s','mkp_t','mkp_cid'].forEach(k=>localStorage.removeItem(k));}
@@ -432,10 +435,10 @@ function getToken(){return getSess()?.access_token??null;}
 function hideLock(){const l=document.getElementById('lock-screen');if(!l)return;l.style.transition='opacity 0.35s';l.style.opacity='0';setTimeout(()=>l.style.display='none',380);}
 function showLock(){const l=document.getElementById('lock-screen');if(l){l.style.display='flex';l.style.opacity='1';}}
 function showV(id){['login-view','fid-offer','fid-lock'].forEach(v=>{const e=document.getElementById(v);if(e)e.style.display=v===id?'flex':'none';});}
-async function checkAuth(){const s=getSess();if(s){const last=localStorage.getItem('mkp_t'),cid=localStorage.getItem('mkp_cid'),fresh=last&&Date.now()-+last<_TTL;if(fresh||!cid||!window.PublicKeyCredential){hideLock();checkAuth();}else{showLock();showV('fid-lock');doFID();}return;}showLock();showV('login-view');}
-async function doLogin(){const e=document.getElementById('login-email').value.trim(),p=document.getElementById('login-pwd').value;if(!e||!p)return;const b=document.getElementById('login-btn');b.textContent='Entrando...';b.disabled=true;document.getElementById('login-err').textContent='';try{const r=await fetch(_SU+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'Content-Type':'application/json','apikey':_AK},body:JSON.stringify({email:e,password:p})});const d=await r.json();if(!r.ok)throw new Error(d.error_description||'Error');storeSess(d);if(window.PublicKeyCredential&&!localStorage.getItem('mkp_cid')){showV('fid-offer');}else{hideLock();loadData();}}catch(ex){document.getElementById('login-err').textContent=ex.message;}finally{b.textContent='ACCEDER';b.disabled=false;}}
+async function checkAuth(){const s=getSess();if(s){const last=localStorage.getItem('mkp_t'),cid=localStorage.getItem('mkp_cid'),fresh=last&&Date.now()-+last<AUTH_TTL;if(fresh||!cid||!window.PublicKeyCredential){hideLock();checkAuth();}else{showLock();showV('fid-lock');doFID();}return;}showLock();showV('login-view');}
+async function doLogin(){const e=document.getElementById('login-email').value.trim(),p=document.getElementById('login-pwd').value;if(!e||!p)return;const b=document.getElementById('login-btn');b.textContent='Entrando...';b.disabled=true;document.getElementById('login-err').textContent='';try{const r=await fetch(SUPABASE_URL_AUTH+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY},body:JSON.stringify({email:e,password:p})});const d=await r.json();if(!r.ok)throw new Error(d.error_description||'Error');storeSess(d);if(window.PublicKeyCredential&&!localStorage.getItem('mkp_cid')){showV('fid-offer');}else{hideLock();loadData();}}catch(ex){document.getElementById('login-err').textContent=ex.message;}finally{b.textContent='ACCEDER';b.disabled=false;}}
 function doLogout(){clearSess();showLock();showV('login-view');}
-async function refreshTok(){try{const s=JSON.parse(localStorage.getItem('mkp_s')||'{}');if(!s.refresh_token)throw 0;const r=await fetch(_SU+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{'Content-Type':'application/json','apikey':_AK},body:JSON.stringify({refresh_token:s.refresh_token})});if(!r.ok)throw 0;storeSess(await r.json());return true;}catch{clearSess();showLock();showV('login-view');return false;}}
+async function refreshTok(){try{const s=JSON.parse(localStorage.getItem('mkp_s')||'{}');if(!s.refresh_token)throw 0;const r=await fetch(SUPABASE_URL_AUTH+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY},body:JSON.stringify({refresh_token:s.refresh_token})});if(!r.ok)throw 0;storeSess(await r.json());return true;}catch{clearSess();showLock();showV('login-view');return false;}}
 async function setupFID(){try{const c=await navigator.credentials.create({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),rp:{name:'MKPremium CRM',id:location.hostname},user:{id:crypto.getRandomValues(new Uint8Array(16)),name:'admin',displayName:'Admin'},pubKeyCredParams:[{alg:-7,type:'public-key'},{alg:-257,type:'public-key'}],authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required'},timeout:60000}});localStorage.setItem('mkp_cid',btoa(String.fromCharCode(...new Uint8Array(c.rawId))));hideLock();loadData();}catch{hideLock();loadData();}}
 async function doFID(){const cid=localStorage.getItem('mkp_cid');if(!cid){showV('login-view');return;}try{const ri=Uint8Array.from(atob(cid),c=>c.charCodeAt(0));await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),rpId:location.hostname,allowCredentials:[{type:'public-key',id:ri}],userVerification:'required',timeout:60000}});localStorage.setItem('mkp_t',''+Date.now());hideLock();loadData();}catch{document.getElementById('fid-err').textContent='Face ID fallido.';document.getElementById('fid-retry').style.display='block';}}
 // ──────────────────────────────────────────────────────────
