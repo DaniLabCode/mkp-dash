@@ -17,7 +17,7 @@
     return window._mkF.apply(this,arguments);
   };
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('./sw.js?v=1777255300742').then(function(reg){
+    navigator.serviceWorker.register('./sw.js?v=1777255322804').then(function(reg){
       reg.addEventListener('updatefound',function(){
         var sw=reg.installing;
         sw.addEventListener('statechange',function(){
