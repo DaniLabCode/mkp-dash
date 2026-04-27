@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="MK CRM"/>
+<meta name="theme-color" content="#07070f"/>
+<title>MK CRM</title>
+
+<!-- PWA Manifest inline -->
+
+<script>
+const manifest = {
+  name: "MKPremium CRM",
+  short_name: "MK CRM",
+  start_url: ".",
+  display: "standalone",
+  background_color: "#07070f",
+  theme_color: "#07070f",
+  orientation: "portrait",
+  icons: [{
+    src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2307070f'/%3E%3Ctext y='.9em' font-size='80' x='10'%3E🏢%3C/text%3E%3C/svg%3E",
+    sizes: "192x192", type: "image/svg+xml"
+  }]
+};
+const blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+const link = document.createElement('link');
+link.rel = 'manifest';
+link.href = URL.createObjectURL(blob);
+document.head.appendChild(link);
+</script>
+
+<style>
+  :root {
+    --bg: #07070f;
+    --surface: #111120;
+    --border: #1e1e35;
+    --text: #fff;
+    --muted: rgba(255,255,255,0.4);
+    --dim: rgba(255,255,255,0.2);
+    --green: #00ff87;
+    --blue: #00b8ff;
+    --purple: #c77dff;
+    --yellow: #ffd93d;
+    --orange: #ff9f43;
+    --pink: #ff6b9d;
+    --cyan: #48dbfb;
+    --red: #ff6b6b;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'SF Mono', 'Courier New', monospace;
+    min-height: 100vh;
+    padding-bottom: calc(80px + var(--safe-bottom));
+    padding-top: var(--safe-top);
+  }
+  /* NAV */
+  .nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(7,7,15,0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding-bottom: var(--safe-bottom);
+    z-index: 100;
+  }
+  .nav-btn {
+    flex: 1; padding: 12px 0 10px;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    background: none; border: none; color: var(--dim); cursor: pointer;
+    font-size: 10px; font-family: inherit; letter-spacing: 0.5px;
+    transition: color 0.2s;
+  }
+  .nav-btn.active { color: var(--green); }
+  .nav-btn svg { width: 22px; height: 22px; }
+  /* HEADER */
+  .header {
+    padding: 20px 16px 12px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .header h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; font-family: system-ui, sans-serif; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); display: inline-block; margin-right: 8px; }
+  .refresh-btn {
+    background: none; border: 1px solid var(--border); color: var(--muted);
+    padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer;
+    font-family: inherit; display: flex; align-items: center; gap: 6px;
+  }
+  .refresh-btn.loading { color: var(--green); border-color: var(--green); }
+  /* PAGES */
+  .page { display: none; padding: 16px; }
+  .page.active { display: block; }
+  /* CARDS */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px; margin-bottom: 12px;
+    position: relative; overflow: hidden;
+  }
+  .card-top-bar { position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .card-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; }
+  .card-value { font-size: 32px; font-weight: 700; line-height: 1; }
+  .card-sub { font-size: 11px; color: var(--dim); margin-top: 4px; }
+  /* GRID */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .card.small { padding: 12px 14px; }
+  .card.small .card-value { font-size: 22px; }
+  /* SECTION TITLE */
+  .section-title {
+    font-size: 10px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 2px; margin: 20px 0 10px;
+  }
+  /* BAR CHART */
+  .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .bar-label { font-size: 10px; color: var(--muted); width: 120px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-track { flex: 1; background: rgba(255,255,255,0.06); border-radius: 4px; height: 8px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+  .bar-count { font-size: 11px; color: var(--text); width: 48px; text-align: right; }
+  /* CITY TABLE */
+  .city-row {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px; margin-bottom: 8px;
+  }
+  .city-name { font-size: 14px; font-weight: 700; font-family: system-ui; margin-bottom: 10px; color: var(--green); }
+  .city-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .city-stat-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .city-stat-value { font-size: 16px; font-weight: 700; margin-top: 2px; }
+  .mini-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .pill {
+    font-size: 10px; padding: 3px 8px; border-radius: 20px;
+    border: 1px solid; display: flex; align-items: center; gap: 4px;
+  }
+  /* CALL STATS */
+  .call-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .call-stat {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px 14px;
+  }
+  .call-stat-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; }
+  .call-stat-value { font-size: 24px; font-weight: 700; margin-top: 4px; }
+  .call-stat-pct { font-size: 10px; margin-top: 2px; }
+  /* SPARKLINE */
+  .sparkline { width: 100%; height: 80px; display: block; }
+  /* LAUNCH SECTION */
+  .launch-city-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px; margin-bottom: 10px;
+  }
+  .launch-city-name { font-size: 15px; font-weight: 700; font-family: system-ui; margin-bottom: 12px; }
+  .input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .input-label { font-size: 11px; color: var(--muted); flex: 1; }
+  .num-input {
+    background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+    color: var(--text); font-family: inherit; font-size: 16px; font-weight: 700;
+    width: 80px; padding: 8px 10px; border-radius: 8px; text-align: center;
+  }
+  .launch-btn {
+    width: 100%; padding: 14px; border-radius: 12px;
+    background: rgba(0,255,135,0.12); border: 1px solid rgba(0,255,135,0.3);
+    color: var(--green); font-size: 13px; font-weight: 700; font-family: inherit;
+    cursor: pointer; letter-spacing: 1px; transition: all 0.2s;
+  }
+  .launch-btn:active { background: rgba(0,255,135,0.25); transform: scale(0.98); }
+  .launch-btn.danger {
+    background: rgba(255,107,107,0.12); border-color: rgba(255,107,107,0.3); color: var(--red);
+  }
+  .launch-btn.blue {
+    background: rgba(0,184,255,0.12); border-color: rgba(0,184,255,0.3); color: var(--blue);
+  }
+  .schedule-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .schedule-key { font-size: 11px; color: var(--muted); }
+  .schedule-val { font-size: 13px; font-weight: 600; }
+  /* TOAST */
+  .toast {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    background: #1a1a2e; border: 1px solid var(--green); color: var(--green);
+    padding: 12px 24px; border-radius: 50px; font-size: 13px; font-weight: 600;
+    z-index: 999; opacity: 0; transition: opacity 0.3s; white-space: nowrap;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+  .toast.error { border-color: var(--red); color: var(--red); }
+  /* SPINNER */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse { 0%,100%{opacity:0.3} 50%{opacity:0.7} }
+  .spinner { width: 14px; height: 14px; border: 2px solid rgba(0,255,135,0.3); border-top-color: var(--green); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  .skeleton { background: rgba(255,255,255,0.06); border-radius: 6px; animation: pulse 1.5s infinite; }
+  /* UPDATED */
+  .updated-at { font-size: 9px; color: var(--dim); text-align: center; padding: 8px 0 4px; }
+  /* CONFIG WARNING */
+  .config-warn {
+    background: rgba(255,211,61,0.1); border: 1px solid rgba(255,211,61,0.3);
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 16px;
+    font-size: 12px; color: var(--yellow);
+  }
+#lock-screen{position:fixed;inset:0;z-index:9999;background:#07070f;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.auth-view{display:none;flex-direction:column;align-items:center;gap:14px;width:100%;padding:0 32px;max-width:360px;}
+.auth-logo{font-size:56px;margin-bottom:4px;}
+.auth-title{font-size:20px;font-weight:700;font-family:system-ui;color:#fff;}
+.auth-sub{font-size:12px;color:rgba(255,255,255,0.4);text-align:center;line-height:1.6;}
+.auth-input{width:100%;padding:14px 16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;color:#fff;font-size:16px;outline:none;box-sizing:border-box;}
+.auth-input:focus{border-color:rgba(0,255,135,0.4);}
+.auth-btn{width:100%;padding:16px;border-radius:12px;background:rgba(0,255,135,0.12);border:1px solid rgba(0,255,135,0.3);color:#00ff87;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all 0.2s;}
+.auth-btn:active{background:rgba(0,255,135,0.22);transform:scale(0.98);}
+.auth-btn:disabled{opacity:0.5;}
+.auth-btn.sec{background:none;border-color:rgba(255,255,255,0.12);color:rgba(255,255,255,0.4);font-size:12px;padding:12px;}
+.auth-err{font-size:12px;color:#ff6b6b;text-align:center;min-height:18px;}
+.logout-btn{background:none;border:none;color:rgba(255,255,255,0.25);font-size:14px;cursor:pointer;padding:4px 8px;}</style>
+
+</head>
+<body>
+<div id="lock-screen">
+<div id="login-view" class="auth-view" style="display:flex">
+  <div class="auth-logo">&#127968;</div>
+  <div class="auth-title">MKPremium CRM</div>
+  <div class="auth-sub">Acceso restringido</div>
+  <input id="login-email" class="auth-input" type="email" placeholder="Email" value="dashboard@mkpremium.local"/>
+  <input id="login-pwd" class="auth-input" type="password" placeholder="Contrasena" onkeydown="if(event.key==='Enter')doLogin()"/>
+  <button id="login-btn" class="auth-btn" onclick="doLogin()">ACCEDER</button>
+  <div id="login-err" class="auth-err"></div>
+</div>
+<div id="fid-offer" class="auth-view">
+  <div class="auth-logo">&#128274;</div>
+  <div class="auth-title">Activar Face ID</div>
+  <div class="auth-sub">Usa Face ID para no introducir contrasena cada vez</div>
+  <button class="auth-btn" onclick="setupFID()">ACTIVAR FACE ID</button>
+  <button class="auth-btn sec" onclick="hideLock();loadData()">Ahora no</button>
+</div>
+<div id="fid-lock" class="auth-view">
+  <div class="auth-logo">&#128274;</div>
+  <div class="auth-title">MKPremium CRM</div>
+  <button id="fid-retry" class="auth-btn" onclick="doFID()" style="display:none">REINTENTAR FACE ID</button>
+  <div id="fid-err" class="auth-err"></div>
+  <button class="auth-btn sec" onclick="clearSess();showV('login-view')">Usar contrasena</button>
+</div>
+</div>
+
+
+<!-- TOAST -->
+
+<div class="toast" id="toast"></div>
+
+<!-- HEADER -->
+
+<div class="header">
+  <div>
+    <span class="status-dot" id="statusDot"></span>
+    <span style="font-size:16px;font-weight:700;font-family:system-ui">MKPremium CRM</span>
+  </div>
+  <button class="logout-btn" onclick="doLogout()" title="Salir">&#128274;</button><button class="refresh-btn" id="refreshBtn" onclick="loadData()">
+    <span id="refreshIcon">↻</span> REFRESH
+  </button>
+</div>
+
+<!-- PAGE: OVERVIEW -->
+
+<div class="page active" id="page-overview">
+  <div class="updated-at" id="updatedAt">Cargando...</div>
+
+  <div class="grid-2">
+    <div class="card small" style="--c:var(--green)">
+      <div class="card-top-bar" style="background:var(--green)"></div>
+      <div class="card-label">Edificios</div>
+      <div class="card-value" id="ov-buildings">—</div>
+    </div>
+    <div class="card small">
+      <div class="card-top-bar" style="background:var(--blue)"></div>
+      <div class="card-label">Propietarios</div>
+      <div class="card-value" id="ov-owners">—</div>
+    </div>
+    <div class="card small">
+      <div class="card-top-bar" style="background:var(--purple)"></div>
+      <div class="card-label">Worksheets</div>
+      <div class="card-value" id="ov-worksheets">—</div>
+    </div>
+    <div class="card small">
+      <div class="card-top-bar" style="background:var(--red)"></div>
+      <div class="card-label">Cola llamadas</div>
+      <div class="card-value" id="ov-queue">—</div>
+    </div>
+    <div class="card small">
+      <div class="card-top-bar" style="background:var(--orange)"></div>
+      <div class="card-label">Propuestas</div>
+      <div class="card-value" id="ov-proposals">—</div>
+    </div>
+    <div class="card small">
+      <div class="card-top-bar" style="background:var(--cyan)"></div>
+      <div class="card-label">Offer Requests</div>
+      <div class="card-value" id="ov-offers">—</div>
+    </div>
+  </div>
+
+  <div class="section-title">Pipeline global</div>
+  <div class="card" id="pipelineContainer">
+    <div style="height:120px" class="skeleton"></div>
+  </div>
+</div>
+
+<!-- PAGE: CIUDADES -->
+
+<div class="page" id="page-cities">
+  <div class="section-title" style="margin-top:8px">Por ciudad</div>
+  <div id="citiesContainer">
+    <div style="height:200px" class="skeleton" style="margin-bottom:10px"></div>
+  </div>
+</div>
+
+<!-- PAGE: LLAMADAS -->
+
+<div class="page" id="page-calls">
+  <div class="section-title" style="margin-top:8px">Resumen llamadas</div>
+
+  <div class="call-stat-grid">
+    <div class="call-stat">
+      <div class="call-stat-label">Total</div>
+      <div class="call-stat-value" id="cl-total">—</div>
+    </div>
+    <div class="call-stat">
+      <div class="call-stat-label">Este mes</div>
+      <div class="call-stat-value" id="cl-month">—</div>
+    </div>
+    <div class="call-stat">
+      <div class="call-stat-label" style="color:var(--green)">✓ Exitosas</div>
+      <div class="call-stat-value" style="color:var(--green)" id="cl-exitosas">—</div>
+      <div class="call-stat-pct" style="color:var(--green)" id="cl-exitosas-pct"></div>
+    </div>
+    <div class="call-stat">
+      <div class="call-stat-label" style="color:var(--blue)">📞 Completadas</div>
+      <div class="call-stat-value" style="color:var(--blue)" id="cl-completadas">—</div>
+      <div class="call-stat-pct" style="color:var(--blue)" id="cl-completadas-pct"></div>
+    </div>
+    <div class="call-stat">
+      <div class="call-stat-label" style="color:var(--red)">✗ No conecta</div>
+      <div class="call-stat-value" style="color:var(--red)" id="cl-noconecta">—</div>
+      <div class="call-stat-pct" style="color:var(--red)" id="cl-noconecta-pct"></div>
+    </div>
+    <div class="call-stat">
+      <div class="call-stat-label" style="color:var(--yellow)">🏠 Quieren vender</div>
+      <div class="call-stat-value" style="color:var(--yellow)" id="cl-vende">—</div>
+      <div class="call-stat-pct" style="color:var(--yellow)" id="cl-vende-pct"></div>
+    </div>
+    <div class="call-stat">
+      <div class="call-stat-label" style="color:var(--orange)">🔄 Rellamadas</div>
+      <div class="call-stat-value" style="color:var(--orange)" id="cl-rellamadas">—</div>
+    </div>
+    <div class="call-stat">
+      <div class="call-stat-label" style="color:var(--red)">🚫 No llamar</div>
+      <div class="call-stat-value" style="color:var(--red)" id="cl-nollamar">—</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label" style="margin-bottom:10px">Coste total · Coste medio/llamada</div>
+    <div style="display:flex;gap:20px;align-items:baseline">
+      <span style="font-size:28px;font-weight:700;color:var(--yellow)" id="cl-coste-total">—</span>
+      <span style="font-size:14px;color:var(--muted)" id="cl-coste-medio">€— / llamada</span>
+    </div>
+  </div>
+
+  <div class="section-title">Actividad últimos 30 días</div>
+  <div class="card" style="padding:16px 12px 8px">
+    <canvas id="sparkCanvas" style="width:100%;height:160px;display:block"></canvas>
+    <div id="chartTooltip" style="text-align:center;font-size:11px;color:var(--muted);margin-top:6px;min-height:16px"></div>
+  </div>
+</div>
+
+<!-- PAGE: LANZAR -->
+
+<div class="page" id="page-launch">
+  <div id="configWarn" class="config-warn" style="display:none">
+    ⚠️ Configura tu API key en el código antes de usar esta función
+  </div>
+
+  <div class="section-title" style="margin-top:8px">Lanzar llamadas por ciudad</div>
+  <div id="launchContainer">
+    <!-- generado dinámicamente -->
+  </div>
+
+  <div class="section-title">Lanzamiento puntual global</div>
+  <div class="card">
+    <div class="input-row">
+      <span class="input-label">Nº llamadas a lanzar ahora</span>
+      <input type="number" class="num-input" id="globalCount" value="100" min="1" max="5000"/>
+    </div>
+    <button class="launch-btn blue" onclick="launchGlobal()">
+      ⚡ LANZAR AHORA (TODAS LAS CIUDADES)
+    </button>
+  </div>
+
+  <div class="section-title">Schedule activo</div>
+  <div class="card" id="scheduleContainer">
+    <div style="height:80px" class="skeleton"></div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="showPage('overview',this)">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    OVERVIEW
+  </button>
+  <button class="nav-btn" onclick="showPage('cities',this)">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 21h18M3 7l9-4 9 4M4 21V7M20 21V7M8 21V10m4 11V10m4 11V10"/></svg>
+    CIUDADES
+  </button>
+  <button class="nav-btn" onclick="showPage('calls',this)">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.5a19.79 19.79 0 01-3.07-8.7A2 2 0 012 .82h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+    LLAMADAS
+  </button>
+  <button class="nav-btn" onclick="showPage('launch',this)">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 3l14 9-14 9V3z"/></svg>
+    LANZAR
+  </button>
+</nav>
+
+<script>
+// ─── CONFIG ────────────────────────────────────────────────
+// config in auth block
+const _SU='https://fxeagnsvpclybwytfpih.supabase.co',_AK='sb_publishable_1FpYpj1N7nieskBnKNsRNA_LiniqFgC',_EP='https://fxeagnsvpclybwytfpih.supabase.co/functions/v1/dashboard',_TTL=4*3600000;
+function getSess(){try{const s=localStorage.getItem('mkp_s');if(!s)return null;const p=JSON.parse(s);if(p.expires_at*1000<Date.now()+60000)return null;return p;}catch{return null;}}
+function storeSess(s){localStorage.setItem('mkp_s',JSON.stringify(s));localStorage.setItem('mkp_t',''+Date.now());}
+function clearSess(){['mkp_s','mkp_t','mkp_cid'].forEach(k=>localStorage.removeItem(k));}
+function getToken(){return getSess()?.access_token??null;}
+function hideLock(){const l=document.getElementById('lock-screen');if(!l)return;l.style.transition='opacity 0.35s';l.style.opacity='0';setTimeout(()=>l.style.display='none',380);}
+function showLock(){const l=document.getElementById('lock-screen');if(l){l.style.display='flex';l.style.opacity='1';}}
+function showV(id){['login-view','fid-offer','fid-lock'].forEach(v=>{const e=document.getElementById(v);if(e)e.style.display=v===id?'flex':'none';});}
+async function checkAuth(){const s=getSess();if(s){const last=localStorage.getItem('mkp_t'),cid=localStorage.getItem('mkp_cid'),fresh=last&&Date.now()-+last<_TTL;if(fresh||!cid||!window.PublicKeyCredential){hideLock();checkAuth();}else{showLock();showV('fid-lock');doFID();}return;}showLock();showV('login-view');}
+async function doLogin(){const e=document.getElementById('login-email').value.trim(),p=document.getElementById('login-pwd').value;if(!e||!p)return;const b=document.getElementById('login-btn');b.textContent='Entrando...';b.disabled=true;document.getElementById('login-err').textContent='';try{const r=await fetch(_SU+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'Content-Type':'application/json','apikey':_AK},body:JSON.stringify({email:e,password:p})});const d=await r.json();if(!r.ok)throw new Error(d.error_description||'Error');storeSess(d);if(window.PublicKeyCredential&&!localStorage.getItem('mkp_cid')){showV('fid-offer');}else{hideLock();loadData();}}catch(ex){document.getElementById('login-err').textContent=ex.message;}finally{b.textContent='ACCEDER';b.disabled=false;}}
+function doLogout(){clearSess();showLock();showV('login-view');}
+async function refreshTok(){try{const s=JSON.parse(localStorage.getItem('mkp_s')||'{}');if(!s.refresh_token)throw 0;const r=await fetch(_SU+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{'Content-Type':'application/json','apikey':_AK},body:JSON.stringify({refresh_token:s.refresh_token})});if(!r.ok)throw 0;storeSess(await r.json());return true;}catch{clearSess();showLock();showV('login-view');return false;}}
+async function setupFID(){try{const c=await navigator.credentials.create({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),rp:{name:'MKPremium CRM',id:location.hostname},user:{id:crypto.getRandomValues(new Uint8Array(16)),name:'admin',displayName:'Admin'},pubKeyCredParams:[{alg:-7,type:'public-key'},{alg:-257,type:'public-key'}],authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required'},timeout:60000}});localStorage.setItem('mkp_cid',btoa(String.fromCharCode(...new Uint8Array(c.rawId))));hideLock();loadData();}catch{hideLock();loadData();}}
+async function doFID(){const cid=localStorage.getItem('mkp_cid');if(!cid){showV('login-view');return;}try{const ri=Uint8Array.from(atob(cid),c=>c.charCodeAt(0));await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),rpId:location.hostname,allowCredentials:[{type:'public-key',id:ri}],userVerification:'required',timeout:60000}});localStorage.setItem('mkp_t',''+Date.now());hideLock();loadData();}catch{document.getElementById('fid-err').textContent='Face ID fallido.';document.getElementById('fid-retry').style.display='block';}}
+// ──────────────────────────────────────────────────────────
+
+const COLORS = ['#00ff87','#ff6b6b','#c77dff','#ffd93d','#ff9f43','#ff6b9d','#48dbfb','#00b8ff'];
+const fmt = n => Number(n).toLocaleString('es-ES');
+const pct = (n, t) => t > 0 ? (n/t*100).toFixed(1)+'%' : '0%';
+let dashData = null;
+
+// ─── NAVIGATION ────────────────────────────────────────────
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ─── TOAST ─────────────────────────────────────────────────
+function toast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+// ─── FETCH DATA ────────────────────────────────────────────
+async function loadData() {
+  const btn = document.getElementById('refreshBtn');
+  const icon = document.getElementById('refreshIcon');
+  btn.classList.add('loading');
+  icon.innerHTML = '<div class="spinner" style="display:inline-block"></div>';
+
+  try {
+    if (DASHBOARD_TOKEN === 'TU_TOKEN_AQUI') {
+      document.getElementById('configWarn').style.display = 'block';
+      toast('⚠️ Configura el token', true);
+      useDemoData();
+      return;
+    }
+
+    const res = await fetch(DASHBOARD_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + getToken()
+      },
+      body: '{}'
+    });
+
+    if(res.status===401){const ok=await refreshTok();if(ok)loadData();return;}if(!res.ok)throw new Error('HTTP '+res.status);
+    dashData = await res.json();
+    renderAll(dashData);
+    toast('✓ Datos actualizados');
+  } catch(e) {
+    toast('Error: ' + e.message, true);
+    console.error(e);
+  } finally {
+    btn.classList.remove('loading');
+    icon.textContent = '↻';
+  }
+}
+
+// ─── DEMO DATA (mientras no hay anon key) ──────────────────
+function useDemoData() {
+  dashData = {
+    overview: { buildings:101521, owners:236980, contacts:156690, worksheets:69116, call_queue:33507, proposals:1043, leads:384, offer_requests:1098 },
+    calls: { total:17716, today:0, this_week:0, this_month:3680, exitosas:2286, fallidas:15411, completadas:8665, no_conectadas:9050, interesados_venta:175, no_llamar:191, rellamadas:144, coste_total:381.05, coste_medio:0.0215 },
+    pipeline: [{status:'LOOKING_MEETING',count:37840},{status:'INVALID',count:25185},{status:'ENTE_PÚBLICO',count:5932},{status:'NO_SALE',count:75},{status:'MEETING',count:32},{status:'YA_VENDIÓ',count:30},{status:'VENDIDO',count:14},{status:'TAKEN',count:8}],
+    by_city: [
+      {city:'PORTO',edificios:26061,worksheets:10864,con_telefono:55,sin_telefono:2767,sin_owner:23239,looking:5766,meeting:11,vendido:0,invalid:5087},
+      {city:'LISBOA',edificios:16909,worksheets:6229,con_telefono:32,sin_telefono:1034,sin_owner:15843,looking:3921,meeting:1,vendido:0,invalid:2307},
+      {city:'BARCELONA',edificios:11707,worksheets:10532,con_telefono:331,sin_telefono:8089,sin_owner:3287,looking:9131,meeting:3,vendido:4,invalid:1394},
+      {city:'MADRID',edificios:11103,worksheets:9941,con_telefono:199,sin_telefono:2934,sin_owner:7970,looking:3500,meeting:9,vendido:4,invalid:6428},
+      {city:'MALAGA',edificios:10833,worksheets:9739,con_telefono:86,sin_telefono:361,sin_owner:10386,looking:4983,meeting:0,vendido:1,invalid:4755},
+      {city:'SEVILLA',edificios:9682,worksheets:8710,con_telefono:91,sin_telefono:354,sin_owner:9237,looking:5173,meeting:0,vendido:0,invalid:3537},
+      {city:'VALENCIA',edificios:8892,worksheets:7973,con_telefono:168,sin_telefono:1446,sin_owner:7278,looking:2340,meeting:5,vendido:0,invalid:5628},
+      {city:'PALMA',edificios:3936,worksheets:3542,con_telefono:87,sin_telefono:1331,sin_owner:2518,looking:1845,meeting:3,vendido:3,invalid:1691}
+    ],
+    calls_30d: [
+      {day:'2026-03-27',calls:911},{day:'2026-03-28',calls:735},{day:'2026-03-30',calls:650},
+      {day:'2026-03-31',calls:579},{day:'2026-04-01',calls:208},{day:'2026-04-04',calls:200},
+      {day:'2026-04-06',calls:200},{day:'2026-04-07',calls:201},{day:'2026-04-08',calls:100},
+      {day:'2026-04-09',calls:100},{day:'2026-04-10',calls:100},{day:'2026-04-11',calls:6},
+      {day:'2026-04-13',calls:303},{day:'2026-04-14',calls:790},{day:'2026-04-15',calls:729},
+      {day:'2026-04-16',calls:713},{day:'2026-04-17',calls:29}
+    ],
+    schedule: [{city:'BARCELONA',daily_limit:0,start_hour:'09:00:00',end_hour:'20:00:00',days:'1-5'}],
+    updated_at: new Date().toISOString()
+  };
+  renderAll(dashData);
+}
+
+// ─── RENDER ALL ─────────────────────────────────────────────
+function renderAll(d) {
+  document.getElementById('updatedAt').textContent =
+    'Actualizado: ' + new Date(d.updated_at).toLocaleTimeString('es-ES');
+
+  renderOverview(d.overview, d.pipeline);
+  renderCities(d.by_city);
+  renderCalls(d.calls, d.calls_30d);
+  renderLaunch(d.by_city, d.schedule);
+}
+
+// ─── OVERVIEW ───────────────────────────────────────────────
+function renderOverview(ov, pipeline) {
+  document.getElementById('ov-buildings').textContent  = fmt(ov.buildings);
+  document.getElementById('ov-owners').textContent     = fmt(ov.owners);
+  document.getElementById('ov-worksheets').textContent = fmt(ov.worksheets);
+  document.getElementById('ov-queue').textContent      = fmt(ov.call_queue);
+  document.getElementById('ov-proposals').textContent  = fmt(ov.proposals);
+  document.getElementById('ov-offers').textContent     = fmt(ov.offer_requests);
+
+  // Pipeline bars
+  const total = pipeline.reduce((s,r) => s + Number(r.count), 0);
+  const html = pipeline.map((r,i) => `
+    <div class="bar-row">
+      <span class="bar-label">${r.status}</span>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${(r.count/total*100).toFixed(1)}%;background:${COLORS[i%COLORS.length]}"></div>
+      </div>
+      <span class="bar-count">${fmt(r.count)}</span>
+    </div>
+  `).join('');
+  document.getElementById('pipelineContainer').innerHTML = html;
+}
+
+// ─── CITIES ─────────────────────────────────────────────────
+function renderCities(cities) {
+  const html = cities.map(c => {
+    const activePct = c.worksheets > 0 ? (c.looking/c.worksheets*100).toFixed(0) : 0;
+    const telPct = c.edificios > 0 ? (c.con_telefono/c.edificios*100).toFixed(1) : 0;
+    return `
+    <div class="city-row">
+      <div class="city-name">🏙 ${c.city}</div>
+      <div class="city-stats">
+        <div>
+          <div class="city-stat-label">Edificios</div>
+          <div class="city-stat-value" style="color:var(--green)">${fmt(c.edificios)}</div>
+        </div>
+        <div>
+          <div class="city-stat-label">Worksheets</div>
+          <div class="city-stat-value" style="color:var(--blue)">${fmt(c.worksheets)}</div>
+        </div>
+        <div>
+          <div class="city-stat-label">Con tel.</div>
+          <div class="city-stat-value" style="color:var(--cyan)">${fmt(c.con_telefono)}</div>
+        </div>
+      </div>
+      <div class="mini-pills" style="margin-top:10px">
+        <span class="pill" style="color:var(--green);border-color:rgba(0,255,135,0.3)">🟢 ${fmt(c.looking)} buscando</span>
+        ${c.meeting > 0 ? `<span class="pill" style="color:var(--yellow);border-color:rgba(255,211,61,0.3)">🤝 ${c.meeting} meeting</span>` : ''}
+        ${c.vendido > 0 ? `<span class="pill" style="color:var(--purple);border-color:rgba(199,125,255,0.3)">✓ ${c.vendido} vendido</span>` : ''}
+        <span class="pill" style="color:var(--red);border-color:rgba(255,107,107,0.3)">✗ ${fmt(c.invalid)} descartado</span>
+      </div>
+      <div style="margin-top:10px;font-size:10px;color:var(--muted)">
+        Sin tel: <span style="color:var(--red)">${fmt(c.sin_telefono)}</span> · 
+        Sin owner: <span style="color:var(--red)">${fmt(c.sin_owner)}</span> · 
+        Tel cobertura: <span style="color:${telPct > 5 ? 'var(--green)' : 'var(--red)'}">${telPct}%</span>
+      </div>
+    </div>
+  `}).join('');
+  document.getElementById('citiesContainer').innerHTML = html;
+}
+
+// ─── CALLS ──────────────────────────────────────────────────
+function renderCalls(cl, hist) {
+  const T = Number(cl.total);
+  document.getElementById('cl-total').textContent = fmt(T);
+  document.getElementById('cl-month').textContent = fmt(cl.this_month);
+
+  const setStatVal = (id, val, total, pctId, color) => {
+    document.getElementById(id).textContent = fmt(val);
+    if (pctId) document.getElementById(pctId).textContent = pct(val, total);
+  };
+
+  setStatVal('cl-exitosas', cl.exitosas, T, 'cl-exitosas-pct');
+  setStatVal('cl-completadas', cl.completadas, T, 'cl-completadas-pct');
+  setStatVal('cl-noconecta', cl.no_conectadas, T, 'cl-noconecta-pct');
+  setStatVal('cl-vende', cl.interesados_venta, T, 'cl-vende-pct');
+  document.getElementById('cl-rellamadas').textContent = fmt(cl.rellamadas);
+  document.getElementById('cl-nollamar').textContent = fmt(cl.no_llamar);
+  document.getElementById('cl-coste-total').textContent = '€' + Number(cl.coste_total).toLocaleString('es-ES', {minimumFractionDigits:2});
+  document.getElementById('cl-coste-medio').textContent = '€' + cl.coste_medio + ' / llamada';
+
+  // Bar chart
+  if (hist && hist.length > 0) {
+    const canvas = document.getElementById('sparkCanvas');
+    const tooltip = document.getElementById('chartTooltip');
+
+    // Wait for layout
+    requestAnimationFrame(() => {
+      const dpr = window.devicePixelRatio || 1;
+      const CSS_W = canvas.parentElement.clientWidth - 24;
+      const CSS_H = 160;
+      canvas.style.width  = CSS_W + 'px';
+      canvas.style.height = CSS_H + 'px';
+      canvas.width  = CSS_W * dpr;
+      canvas.height = CSS_H * dpr;
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+
+      const W = CSS_W, H = CSS_H;
+      const PAD_LEFT = 38, PAD_BOTTOM = 28, PAD_TOP = 12, PAD_RIGHT = 8;
+      const chartW = W - PAD_LEFT - PAD_RIGHT;
+      const chartH = H - PAD_BOTTOM - PAD_TOP;
+
+      const max = Math.max(...hist.map(h => h.calls));
+      const n = hist.length;
+      const barW = Math.max(4, Math.floor(chartW / n) - 3);
+      const gap  = Math.floor((chartW - barW * n) / (n + 1));
+
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = '#0e0e1a';
+      ctx.fillRect(0, 0, W, H);
+
+      // Grid lines + Y labels
+      const steps = 4;
+      ctx.font = `${9 * dpr / dpr}px 'SF Mono', monospace`;
+      ctx.textAlign = 'right';
+      for (let i = 0; i <= steps; i++) {
+        const val = Math.round(max * i / steps);
+        const y = PAD_TOP + chartH - (chartH * i / steps);
+        // grid
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 4]);
+        ctx.moveTo(PAD_LEFT, y);
+        ctx.lineTo(W - PAD_RIGHT, y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // label
+        ctx.fillStyle = 'rgba(255,255,255,0.28)';
+        ctx.fillText(val >= 1000 ? (val/1000).toFixed(1)+'k' : val, PAD_LEFT - 4, y + 3);
+      }
+
+      // Bars
+      hist.forEach((h, i) => {
+        const barH = chartH * (h.calls / max);
+        const x = PAD_LEFT + gap + i * (barW + gap);
+        const y = PAD_TOP + chartH - barH;
+
+        // Color por intensidad
+        const intensity = h.calls / max;
+        let color;
+        if (intensity > 0.7)      color = '#00ff87';
+        else if (intensity > 0.3) color = '#00b8ff';
+        else                      color = 'rgba(0,184,255,0.35)';
+
+        // Gradiente vertical barra
+        const grad = ctx.createLinearGradient(0, y, 0, PAD_TOP + chartH);
+        grad.addColorStop(0, color);
+        grad.addColorStop(1, color.startsWith('rgba') ? color : color + '55');
+
+        ctx.beginPath();
+        const r = Math.min(3, barW / 2);
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + barW - r, y);
+        ctx.arcTo(x + barW, y, x + barW, y + r, r);
+        ctx.lineTo(x + barW, PAD_TOP + chartH);
+        ctx.lineTo(x, PAD_TOP + chartH);
+        ctx.arcTo(x, y, x + r, y, r);
+        ctx.closePath();
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // Valor encima si es alto
+        if (h.calls > max * 0.5) {
+          ctx.textAlign = 'center';
+          ctx.fillStyle = 'rgba(255,255,255,0.7)';
+          ctx.font = `bold ${9 * dpr / dpr}px monospace`;
+          ctx.fillText(h.calls, x + barW / 2, y - 3);
+        }
+      });
+
+      // X labels (fechas) — solo cada 3 barras
+      ctx.textAlign = 'center';
+      ctx.font = `${9 * dpr / dpr}px monospace`;
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      hist.forEach((h, i) => {
+        if (i % 3 !== 0) return;
+        const x = PAD_LEFT + gap + i * (barW + gap) + barW / 2;
+        const dateStr = h.day ? h.day.slice(5) : ''; // MM-DD
+        ctx.fillText(dateStr, x, H - 6);
+      });
+
+      // Touch / click tooltip
+      canvas.onclick = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        hist.forEach((h, i) => {
+          const x = PAD_LEFT + gap + i * (barW + gap);
+          if (mx >= x && mx <= x + barW) {
+            tooltip.textContent = `${h.day}  ·  ${h.calls.toLocaleString('es-ES')} llamadas`;
+            tooltip.style.color = '#00ff87';
+          }
+        });
+      };
+    });
+  }
+}
+
+// ─── LAUNCH ─────────────────────────────────────────────────
+function renderLaunch(cities, schedule) {
+  const launchHtml = cities.map(c => `
+    <div class="launch-city-card">
+      <div class="launch-city-name">🏙 ${c.city}</div>
+      <div class="input-row">
+        <span class="input-label">Llamadas diarias</span>
+        <input type="number" class="num-input" id="limit-${c.city}" value="200" min="0" max="5000"/>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="launch-btn" onclick="setSchedule('${c.city}')">
+          💾 GUARDAR LÍMITE
+        </button>
+        <button class="launch-btn blue" onclick="launchNow('${c.city}')">
+          ⚡ LANZAR AHORA
+        </button>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('launchContainer').innerHTML = launchHtml;
+
+  // Schedule display
+  if (schedule && schedule.length > 0) {
+    const s = schedule[0];
+    document.getElementById('scheduleContainer').innerHTML = `
+      <div class="schedule-row"><span class="schedule-key">Ciudad</span><span class="schedule-val" style="color:var(--green)">${s.city}</span></div>
+      <div class="schedule-row"><span class="schedule-key">Límite diario</span><span class="schedule-val">${s.daily_limit === 0 ? '⏸ PAUSADO' : s.daily_limit + ' llamadas/día'}</span></div>
+      <div class="schedule-row"><span class="schedule-key">Horario</span><span class="schedule-val">${s.start_hour.slice(0,5)} – ${s.end_hour.slice(0,5)}</span></div>
+      <div class="schedule-row" style="border:none"><span class="schedule-key">Días</span><span class="schedule-val">Lunes–Viernes</span></div>
+      <button class="launch-btn danger" style="margin-top:12px" onclick="pauseAll()">⏸ PAUSAR TODO</button>
+    `;
+  }
+}
+
+// ─── ACTIONS ────────────────────────────────────────────────
+async function setSchedule(city) {
+  const limit = document.getElementById('limit-' + city).value;
+  if (DASHBOARD_TOKEN === 'TU_TOKEN_AQUI') { toast('⚠️ Configura el token', true); return; }
+  try {
+    const res = await fetch(DASHBOARD_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+      body: JSON.stringify({ action: 'set_schedule', city, daily_limit: parseInt(limit) })
+    });
+    if (res.ok) toast(`✓ ${city}: ${limit} llamadas/día`);
+    else throw new Error('HTTP ' + res.status);
+  } catch(e) { toast('Error: ' + e.message, true); }
+}
+
+async function launchNow(city) {
+  const count = document.getElementById('limit-' + city).value;
+  toast(`⚡ Lanzando ${count} llamadas en ${city}...`);
+  // TODO: conectar con Edge Function de Retell
+}
+
+async function launchGlobal() {
+  const count = document.getElementById('globalCount').value;
+  toast(`⚡ Lanzando ${count} llamadas globales...`);
+  // TODO: conectar con Edge Function de Retell
+}
+
+async function pauseAll() {
+  if (!confirm('¿Pausar todas las llamadas?')) return;
+  if (DASHBOARD_TOKEN === 'TU_TOKEN_AQUI') { toast('⚠️ Configura el token', true); return; }
+  try {
+    const res = await fetch(DASHBOARD_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+      body: JSON.stringify({ action: 'pause_all' })
+    });
+    if (res.ok) toast('⏸ Llamadas pausadas');
+    else throw new Error('HTTP ' + res.status);
+  } catch(e) { toast('Error: ' + e.message, true); }
+}
+
+// ─── AUTO REFRESH cada 60s ──────────────────────────────────
+setInterval(loadData, 60000);
+
+// ─── INIT ───────────────────────────────────────────────────
+loadData();
+</script>
+
+</body>
+</html>
